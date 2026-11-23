@@ -18,6 +18,7 @@ interface VariantRowInput {
   price: string;
   costPrice: string;
   lowStockThreshold: string;
+  unit: string;
   initialStock: string;
   currentStock: number | null;
   isActive: boolean;
@@ -122,6 +123,7 @@ export async function createProduct(formData: FormData) {
         attributes: row.attributes ?? {},
         cost_price: Number(row.costPrice) || 0,
         low_stock_threshold: Number(row.lowStockThreshold) || 5,
+        unit: row.unit?.trim() || "Cái",
         is_active: row.isActive,
       })
       .select()
@@ -210,6 +212,7 @@ export async function updateProduct(formData: FormData) {
           attributes: row.attributes ?? {},
           cost_price: costPrice,
           low_stock_threshold: lowStockThreshold,
+          unit: row.unit?.trim() || "Cái",
           is_active: row.isActive,
         })
         .eq("id", row.dbId);
@@ -234,6 +237,7 @@ export async function updateProduct(formData: FormData) {
         attributes: row.attributes ?? {},
         cost_price: costPrice,
         low_stock_threshold: lowStockThreshold,
+        unit: row.unit?.trim() || "Cái",
         is_active: row.isActive,
       })
       .select()

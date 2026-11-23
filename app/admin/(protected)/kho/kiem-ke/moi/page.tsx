@@ -11,6 +11,7 @@ interface VariantRow {
   id: string;
   sku: string;
   attributes: Record<string, string>;
+  unit: string;
   product: { name: string } | null;
 }
 
@@ -49,7 +50,7 @@ export default async function NewStockCountPage({
   const [{ data: variants }, { data: stockRows }] = await Promise.all([
     supabase
       .from("product_variants")
-      .select("id, sku, attributes, product:products(name)")
+      .select("id, sku, attributes, unit, product:products(name)")
       .eq("is_active", true),
     supabase.from("inventory_stock").select("variant_id, quantity").eq("warehouse_id", warehouse_id),
   ]);
@@ -62,6 +63,7 @@ export default async function NewStockCountPage({
       variantId: v.id,
       label: attrLabel ? `${v.product?.name} (${attrLabel})` : v.product?.name ?? "Sản phẩm",
       sku: v.sku,
+      unit: v.unit || "Cái",
       systemQuantity: stockMap.get(v.id) ?? 0,
     };
   });

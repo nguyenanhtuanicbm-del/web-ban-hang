@@ -42,6 +42,7 @@ export interface Variant {
   attributes: Record<string, string>;
   cost_price: number;
   low_stock_threshold: number;
+  unit: string;
   track_lot: boolean;
   track_serial: boolean;
   is_active: boolean;
@@ -53,6 +54,9 @@ export interface Variant {
   /** Tổng tồn kho mọi kho — gắn vào khi query kèm join, không phải cột DB. */
   total_stock?: number;
 }
+
+/** Các đơn vị tính thường dùng cho sản phẩm bán lẻ — chọn nhanh khi tạo biến thể. */
+export const UNIT_OPTIONS = ["Cái", "Kg", "Mét", "Cây", "Bịch"];
 
 export interface PriceList {
   id: string;

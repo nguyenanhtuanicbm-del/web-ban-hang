@@ -23,6 +23,7 @@ interface LedgerRow {
   variant: {
     sku: string;
     attributes: Record<string, string>;
+    unit: string;
     product: { name: string } | null;
   } | null;
   warehouse: { name: string } | null;
@@ -60,7 +61,7 @@ export default async function StockLedgerPage({
       const { data } = await supabase
         .from("stock_ledger")
         .select(
-          "*, variant:product_variants(sku, attributes, product:products(name)), warehouse:warehouses(name)"
+          "*, variant:product_variants(sku, attributes, unit, product:products(name)), warehouse:warehouses(name)"
         )
         .in("variant_id", variantIds)
         .order("created_at", { ascending: false })
@@ -116,14 +117,16 @@ export default async function StockLedgerPage({
                     e.quantity_change > 0 ? "text-green-600" : "text-red-600"
                   }`}
                 >
-                  {e.quantity_change > 0 ? `+${e.quantity_change}` : e.quantity_change}
+                  {e.quantity_change > 0 ? `+${e.quantity_change}` : e.quantity_change} {e.variant?.unit}
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
                 <span>
                   {CHANGE_TYPE_LABEL[e.change_type]} · {e.warehouse?.name ?? "—"}
                 </span>
-                <span>Tồn sau: {e.balance_after}</span>
+                <span>
+                  Tồn sau: {e.balance_after} {e.variant?.unit}
+                </span>
               </div>
               <p className="mt-1 text-xs text-gray-400">
                 {new Date(e.created_at).toLocaleString("vi-VN")}
@@ -173,9 +176,11 @@ export default async function StockLedgerPage({
                       e.quantity_change > 0 ? "text-green-600" : "text-red-600"
                     }`}
                   >
-                    {e.quantity_change > 0 ? `+${e.quantity_change}` : e.quantity_change}
+                    {e.quantity_change > 0 ? `+${e.quantity_change}` : e.quantity_change} {e.variant?.unit}
                   </td>
-                  <td className="px-4 py-2 text-right">{e.balance_after}</td>
+                  <td className="px-4 py-2 text-right">
+                    {e.balance_after} {e.variant?.unit}
+                  </td>
                   <td className="px-4 py-2 text-gray-500">{e.note || "—"}</td>
                 </tr>
               );

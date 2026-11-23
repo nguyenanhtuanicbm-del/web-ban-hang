@@ -88,6 +88,58 @@ export async function getActiveProducts(): Promise<Product[]> {
   }));
 }
 
+export interface ProductSuggestion {
+  id: string;
+  name: string;
+  slug: string;
+  image: string | null;
+  minPrice: number;
+}
+
+/** Gợi ý sản phẩm theo từ khóa — dùng cho ô tìm kiếm có autocomplete trên storefront. */
+export async function searchProductSuggestions(query: string, limit = 6): Promise<ProductSuggestion[]> {
+  const q = query.trim();
+  if (!q) return [];
+
+  const supabase = createPublicClient();
+
+  const [{ data, error }, defaultPriceListId] = await Promise.all([
+    supabase
+      .from("products")
+      .select("id, name, slug, images, variants:product_variants(id, is_active)")
+      .eq("is_active", true)
+      .ilike("name", `%${q}%`)
+      .limit(limit),
+    getDefaultPriceListId(supabase),
+  ]);
+  if (error || !data) return [];
+
+  type Row = { id: string; name: string; slug: string; images: string[]; variants: { id: string; is_active: boolean }[] };
+  const products = data as unknown as Row[];
+  const variantIds = products.flatMap((p) => p.variants.filter((v) => v.is_active).map((v) => v.id));
+
+  let priceMap = new Map<string, number>();
+  if (defaultPriceListId && variantIds.length > 0) {
+    const { data: priceItems } = await supabase
+      .from("price_list_items")
+      .select("variant_id, price")
+      .eq("price_list_id", defaultPriceListId)
+      .in("variant_id", variantIds);
+    priceMap = new Map((priceItems ?? []).map((p) => [p.variant_id, p.price]));
+  }
+
+  return products.map((p) => {
+    const prices = p.variants.filter((v) => v.is_active).map((v) => priceMap.get(v.id) ?? 0);
+    return {
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      image: p.images?.[0] ?? null,
+      minPrice: prices.length > 0 ? Math.min(...prices) : 0,
+    };
+  });
+}
+
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const supabase = createPublicClient();
 

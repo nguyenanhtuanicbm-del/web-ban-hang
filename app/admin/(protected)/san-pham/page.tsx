@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus, Pencil, Trash2, FileSpreadsheet } from "lucide-react";
 import { getAllProductsForAdmin } from "@/lib/queries";
-import { productMinPrice, productTotalStock } from "@/lib/product-helpers";
+import { productMinPrice, productTotalStock, productUnit } from "@/lib/product-helpers";
 import { formatVND } from "@/lib/format";
 import ProductImage from "@/components/ProductImage";
 import { deleteProduct } from "./actions";
@@ -65,7 +65,9 @@ export default async function AdminProductsPage() {
                   {(product.variants?.length ?? 0) > 1 ? "Từ " : ""}
                   {formatVND(productMinPrice(product))}
                 </span>
-                <span className="ml-2 text-gray-500">Tồn: {productTotalStock(product)}</span>
+                <span className="ml-2 text-gray-500">
+                  Tồn: {productTotalStock(product)} {productUnit(product)}
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <Link
@@ -124,7 +126,9 @@ export default async function AdminProductsPage() {
                   {(product.variants?.length ?? 0) > 1 ? "Từ " : ""}
                   {formatVND(productMinPrice(product))}
                 </td>
-                <td className="px-4 py-2 text-right">{productTotalStock(product)}</td>
+                <td className="px-4 py-2 text-right">
+                  {productTotalStock(product)} {productUnit(product)}
+                </td>
                 <td className="px-4 py-2">
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${

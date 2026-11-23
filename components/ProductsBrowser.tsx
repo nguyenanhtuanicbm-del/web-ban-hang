@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { X } from "lucide-react";
 import ProductGrid from "./ProductGrid";
 import type { Category, Product } from "@/lib/types";
 
 /**
- * Lọc theo danh mục hoàn toàn ở client (không gọi lại server) — toàn bộ sản phẩm active đã
- * tải sẵn 1 lần từ trang cha (ISR cache 30s), nên bấm đổi danh mục phản hồi tức thì thay vì
- * phải đợi 1 vòng request/response mới như khi dùng điều hướng Link kiểu cũ.
+ * Lọc theo danh mục + từ khóa hoàn toàn ở client (không gọi lại server) — toàn bộ sản phẩm
+ * active đã tải sẵn 1 lần từ trang cha (ISR cache 30s), nên bấm đổi danh mục/tìm kiếm phản hồi
+ * tức thì thay vì phải đợi 1 vòng request/response mới như khi dùng điều hướng Link kiểu cũ.
  */
 export default function ProductsBrowser({
   products,
@@ -21,15 +22,34 @@ export default function ProductsBrowser({
   const [selectedSlug, setSelectedSlug] = useState<string | null>(
     searchParams.get("danh-muc")
   );
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
 
   const filtered = useMemo(() => {
-    if (!selectedSlug) return products;
-    return products.filter((p) => p.category?.slug === selectedSlug);
-  }, [products, selectedSlug]);
+    let list = products;
+    if (selectedSlug) list = list.filter((p) => p.category?.slug === selectedSlug);
+    const q = query.trim().toLowerCase();
+    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
+    return list;
+  }, [products, selectedSlug, query]);
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold text-gray-900">Sản phẩm</h1>
+
+      {query.trim() && (
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <span>
+            Kết quả tìm kiếm cho <strong>&quot;{query.trim()}&quot;</strong> ({filtered.length} sản phẩm)
+          </span>
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="flex items-center gap-1 text-brand-600 hover:underline"
+          >
+            <X className="h-3.5 w-3.5" /> Xóa
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <button

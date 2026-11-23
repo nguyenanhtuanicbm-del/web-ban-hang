@@ -6,11 +6,13 @@ export default function QuantityStepper({
   value,
   min = 1,
   max,
+  unit,
   onChange,
 }: {
   value: number;
   min?: number;
   max?: number;
+  unit?: string;
   onChange: (value: number) => void;
 }) {
   const dec = () => onChange(Math.max(min, value - 1));
@@ -27,7 +29,10 @@ export default function QuantityStepper({
       >
         <Minus className="h-4 w-4" />
       </button>
-      <span className="w-10 text-center text-sm font-medium">{value}</span>
+      <span className="min-w-10 px-1 text-center text-sm font-medium">
+        {value}
+        {unit ? <span className="text-gray-400"> {unit}</span> : null}
+      </span>
       <button
         type="button"
         onClick={inc}

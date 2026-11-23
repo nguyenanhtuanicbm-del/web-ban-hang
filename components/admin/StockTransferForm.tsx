@@ -8,6 +8,7 @@ interface VariantOption {
   variantId: string;
   label: string;
   sku: string;
+  unit: string;
 }
 
 interface StockEntry {
@@ -151,6 +152,7 @@ export default function StockTransferForm({
           <thead>
             <tr className="bg-gray-50 text-left text-gray-500">
               <th className="px-3 py-2">Sản phẩm</th>
+              <th className="px-3 py-2">ĐVT</th>
               <th className="px-3 py-2 text-right">Tồn tại kho nguồn</th>
               <th className="px-3 py-2 text-right">SL chuyển</th>
               <th className="px-3 py-2"></th>
@@ -159,7 +161,7 @@ export default function StockTransferForm({
           <tbody>
             {items.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-3 py-4 text-center text-gray-400">
+                <td colSpan={5} className="px-3 py-4 text-center text-gray-400">
                   Chưa có sản phẩm nào.
                 </td>
               </tr>
@@ -170,6 +172,7 @@ export default function StockTransferForm({
               return (
                 <tr key={item.variantId} className="border-t border-gray-100">
                   <td className="px-3 py-2">{variant?.label}</td>
+                  <td className="px-3 py-2 text-gray-500">{variant?.unit}</td>
                   <td className="px-3 py-2 text-right">{available}</td>
                   <td className="px-3 py-2 text-right">
                     <input

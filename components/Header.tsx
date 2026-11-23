@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ShoppingCart, Menu, X } from "lucide-react";
 import { useCartStore, useCartHydrated, cartCount } from "@/store/cart";
+import SearchBox from "./SearchBox";
 
 export default function Header({ storeName }: { storeName: string }) {
   const items = useCartStore((s) => s.items);
@@ -14,12 +15,16 @@ export default function Header({ storeName }: { storeName: string }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="text-lg font-bold text-brand-700">
+      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
+        <Link href="/" className="flex-shrink-0 text-lg font-bold text-brand-700">
           {storeName}
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-gray-700 sm:flex">
+        <div className="hidden flex-1 sm:block sm:max-w-xs">
+          <SearchBox />
+        </div>
+
+        <nav className="hidden flex-shrink-0 items-center gap-6 text-sm font-medium text-gray-700 sm:flex">
           <Link href="/" className="hover:text-brand-600">
             Trang chủ
           </Link>
@@ -28,7 +33,7 @@ export default function Header({ storeName }: { storeName: string }) {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="ml-auto flex flex-shrink-0 items-center gap-3 sm:ml-0">
           <Link href="/gio-hang" className="relative rounded-full p-2 hover:bg-gray-100">
             <ShoppingCart className="h-5 w-5" />
             {count > 0 && (
@@ -45,6 +50,10 @@ export default function Header({ storeName }: { storeName: string }) {
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
+      </div>
+
+      <div className="border-t border-gray-100 px-4 py-2 sm:hidden">
+        <SearchBox />
       </div>
 
       {menuOpen && (

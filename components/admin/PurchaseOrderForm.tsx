@@ -18,6 +18,7 @@ interface FlatVariantOption {
   label: string;
   sku: string;
   costPrice: number;
+  unit: string;
 }
 
 function SubmitButton() {
@@ -43,6 +44,7 @@ function flattenOptions(products: Product[]): FlatVariantOption[] {
         label: attrLabel ? `${product.name} - ${attrLabel}` : product.name,
         sku: variant.sku,
         costPrice: variant.cost_price,
+        unit: variant.unit || "Cái",
       });
     }
   }
@@ -163,6 +165,7 @@ export default function PurchaseOrderForm({
             <tr className="bg-gray-50 text-left text-gray-500">
               <th className="px-3 py-2">Sản phẩm</th>
               <th className="px-3 py-2">SL</th>
+              <th className="px-3 py-2">ĐVT</th>
               <th className="px-3 py-2">Giá nhập</th>
               <th className="px-3 py-2">Lô (tuỳ chọn)</th>
               <th className="px-3 py-2">HSD (tuỳ chọn)</th>
@@ -173,7 +176,7 @@ export default function PurchaseOrderForm({
           <tbody>
             {items.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-4 text-center text-gray-400">
+                <td colSpan={8} className="px-3 py-4 text-center text-gray-400">
                   Chưa có sản phẩm nào.
                 </td>
               </tr>
@@ -192,6 +195,7 @@ export default function PurchaseOrderForm({
                       className="w-16 rounded-md border border-gray-300 px-2 py-1"
                     />
                   </td>
+                  <td className="px-3 py-2 text-gray-500">{option?.unit}</td>
                   <td className="px-3 py-2">
                     <input
                       type="number"

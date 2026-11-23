@@ -11,6 +11,7 @@ interface TransferItemRow {
   quantity: number;
   variant: {
     attributes: Record<string, string>;
+    unit: string;
     product: { name: string } | null;
   } | null;
 }
@@ -26,7 +27,7 @@ export default async function StockTransferDetailPage({
   const { data: transfer } = await supabase
     .from("stock_transfers")
     .select(
-      "*, from_warehouse:warehouses!stock_transfers_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_transfers_to_warehouse_id_fkey(name), items:stock_transfer_items(*, variant:product_variants(attributes, product:products(name)))"
+      "*, from_warehouse:warehouses!stock_transfers_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_transfers_to_warehouse_id_fkey(name), items:stock_transfer_items(*, variant:product_variants(attributes, unit, product:products(name)))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -70,7 +71,9 @@ export default async function StockTransferDetailPage({
                   {item.variant?.product?.name}
                   {attrLabel ? ` (${attrLabel})` : ""}
                 </span>
-                <span className="font-medium">{item.quantity}</span>
+                <span className="font-medium">
+                  {item.quantity} {item.variant?.unit}
+                </span>
               </div>
             );
           })}

@@ -28,6 +28,7 @@ interface ParsedRow {
   barcode: string;
   price: number;
   costPrice: number;
+  unit: string;
   initialStock: number;
   lowStockThreshold: number;
 }
@@ -141,6 +142,7 @@ export async function importProductsFromExcel(
       barcode: cellText(get("Mã vạch")),
       price,
       costPrice: cellNumber(get("Giá vốn")),
+      unit: cellText(get("Đơn vị tính")) || "Cái",
       initialStock: cellNumber(get("Tồn kho ban đầu")),
       lowStockThreshold: cellNumber(get("Ngưỡng cảnh báo tồn")) || 5,
     });
@@ -253,6 +255,7 @@ export async function importProductsFromExcel(
             attributes: row.attributes,
             cost_price: row.costPrice,
             low_stock_threshold: row.lowStockThreshold,
+            unit: row.unit,
             is_active: true,
           })
           .select("id")

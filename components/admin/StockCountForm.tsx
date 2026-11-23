@@ -7,6 +7,7 @@ export interface StockCountItemInput {
   variantId: string;
   label: string;
   sku: string;
+  unit: string;
   systemQuantity: number;
 }
 
@@ -53,6 +54,7 @@ export default function StockCountForm({
             <tr className="bg-gray-50 text-left text-gray-500">
               <th className="px-3 py-2">Sản phẩm</th>
               <th className="px-3 py-2">SKU</th>
+              <th className="px-3 py-2">ĐVT</th>
               <th className="px-3 py-2 text-right">Tồn hệ thống</th>
               <th className="px-3 py-2 text-right">Tồn thực tế</th>
               <th className="px-3 py-2 text-right">Lệch</th>
@@ -66,6 +68,7 @@ export default function StockCountForm({
                 <tr key={item.variantId} className="border-t border-gray-100">
                   <td className="px-3 py-2">{item.label}</td>
                   <td className="px-3 py-2 text-gray-500">{item.sku}</td>
+                  <td className="px-3 py-2 text-gray-500">{item.unit}</td>
                   <td className="px-3 py-2 text-right">{item.systemQuantity}</td>
                   <td className="px-3 py-2 text-right">
                     <input
@@ -90,7 +93,7 @@ export default function StockCountForm({
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-gray-400">
+                <td colSpan={6} className="px-3 py-6 text-center text-gray-400">
                   Không có sản phẩm nào.
                 </td>
               </tr>

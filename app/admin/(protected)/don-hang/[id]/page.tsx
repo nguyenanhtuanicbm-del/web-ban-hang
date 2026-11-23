@@ -3,11 +3,12 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatVND } from "@/lib/format";
 import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, type OrderStatus } from "@/lib/types";
-import { updateOrderStatus } from "../actions";
+import CancelOrderButton from "@/components/admin/CancelOrderButton";
+import { updateOrderStatus, cancelOrder } from "../actions";
 
 export const revalidate = 0;
 
-const STATUSES: OrderStatus[] = ["new", "processing", "completed", "cancelled"];
+const STATUSES: OrderStatus[] = ["new", "processing", "completed"];
 
 export default async function OrderDetailPage({
   params,
@@ -31,28 +32,37 @@ export default async function OrderDetailPage({
         ← Quay lại danh sách đơn hàng
       </Link>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-gray-900">Đơn hàng {order.code}</h1>
-        <form action={updateOrderStatus} className="flex items-center gap-2">
-          <input type="hidden" name="id" value={order.id} />
-          <select
-            name="status"
-            defaultValue={order.status}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-600 focus:outline-none"
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {ORDER_STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            Cập nhật
-          </button>
-        </form>
+        {order.status === "cancelled" ? (
+          <span className="rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-500">
+            Đơn hàng đã hủy
+          </span>
+        ) : (
+          <div className="flex items-center gap-2">
+            <form action={updateOrderStatus} className="flex items-center gap-2">
+              <input type="hidden" name="id" value={order.id} />
+              <select
+                name="status"
+                defaultValue={order.status}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-600 focus:outline-none"
+              >
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {ORDER_STATUS_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+              >
+                Cập nhật
+              </button>
+            </form>
+            <CancelOrderButton orderId={order.id} action={cancelOrder} />
+          </div>
+        )}
       </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -102,6 +112,12 @@ export default async function OrderDetailPage({
           <span className="text-brand-600">{formatVND(order.total)}</span>
         </div>
       </div>
+
+      {order.status === "cancelled" && (
+        <p className="text-sm text-gray-500">
+          Đơn hàng đã bị hủy — tồn kho các sản phẩm trong đơn đã được hoàn lại.
+        </p>
+      )}
     </div>
   );
 }

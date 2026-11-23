@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { Product } from "@/lib/types";
 import { formatVND } from "@/lib/format";
-import { productMinPrice, productTotalStock } from "@/lib/product-helpers";
+import { productMinPrice, productTotalStock, productUnit } from "@/lib/product-helpers";
 import ProductImage from "./ProductImage";
 
 export default function ProductCard({ product }: { product: Product }) {
   const outOfStock = productTotalStock(product) <= 0;
   const hasMultipleVariants = (product.variants?.length ?? 0) > 1;
   const price = productMinPrice(product);
+  const unit = productUnit(product);
 
   return (
     <Link
@@ -31,6 +32,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="mt-1 flex items-baseline gap-2">
           <span className="font-semibold text-brand-600">
             {hasMultipleVariants ? `Từ ${formatVND(price)}` : formatVND(price)}
+            <span className="text-xs font-normal text-gray-400">/{unit}</span>
           </span>
         </div>
       </div>

@@ -36,7 +36,10 @@ export default function ProductPurchasePanel({ product }: { product: Product }) 
 
   return (
     <div className="flex flex-col gap-4">
-      <span className="text-2xl font-bold text-brand-600">{formatVND(selectedVariant.price ?? 0)}</span>
+      <span className="text-2xl font-bold text-brand-600">
+        {formatVND(selectedVariant.price ?? 0)}
+        <span className="text-sm font-normal text-gray-400">/{selectedVariant.unit || "Cái"}</span>
+      </span>
 
       {attributeKeys.length > 0 && (
         <div className="flex flex-col gap-3">
@@ -67,7 +70,9 @@ export default function ProductPurchasePanel({ product }: { product: Product }) 
         </div>
       )}
 
-      <p className="text-sm text-gray-500">{stock > 0 ? `Còn ${stock} sản phẩm` : "Hiện đã hết hàng"}</p>
+      <p className="text-sm text-gray-500">
+        {stock > 0 ? `Còn ${stock} ${selectedVariant.unit || "Cái"}` : "Hiện đã hết hàng"}
+      </p>
 
       <AddToCartButton product={product} variant={selectedVariant} />
     </div>

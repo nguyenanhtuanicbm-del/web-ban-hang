@@ -13,6 +13,7 @@ interface CountItemRow {
   variant: {
     sku: string;
     attributes: Record<string, string>;
+    unit: string;
     product: { name: string } | null;
   } | null;
 }
@@ -28,7 +29,7 @@ export default async function StockCountDetailPage({
   const { data: count } = await supabase
     .from("stock_counts")
     .select(
-      "*, warehouse:warehouses(name), items:stock_count_items(*, variant:product_variants(sku, attributes, product:products(name)))"
+      "*, warehouse:warehouses(name), items:stock_count_items(*, variant:product_variants(sku, attributes, unit, product:products(name)))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -57,6 +58,7 @@ export default async function StockCountDetailPage({
           <thead>
             <tr className="bg-gray-50 text-left text-gray-500">
               <th className="px-3 py-2">Sản phẩm</th>
+              <th className="px-3 py-2">ĐVT</th>
               <th className="px-3 py-2 text-right">Tồn hệ thống</th>
               <th className="px-3 py-2 text-right">Tồn thực tế</th>
               <th className="px-3 py-2 text-right">Lệch</th>
@@ -72,6 +74,7 @@ export default async function StockCountDetailPage({
                     {item.variant?.product?.name}
                     {attrLabel ? ` (${attrLabel})` : ""}
                   </td>
+                  <td className="px-3 py-2 text-gray-500">{item.variant?.unit}</td>
                   <td className="px-3 py-2 text-right">{item.system_quantity}</td>
                   <td className="px-3 py-2 text-right">{item.counted_quantity}</td>
                   <td

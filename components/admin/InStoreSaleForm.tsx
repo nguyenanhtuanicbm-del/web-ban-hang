@@ -15,6 +15,7 @@ interface FlatVariantOption {
   label: string;
   price: number;
   stock: number;
+  unit: string;
 }
 
 function SubmitButton() {
@@ -40,6 +41,7 @@ function flattenOptions(products: Product[]): FlatVariantOption[] {
         label: attrLabel ? `${product.name} - ${attrLabel}` : product.name,
         price: variant.price ?? 0,
         stock: variant.total_stock ?? 0,
+        unit: variant.unit || "Cái",
       });
     }
   }
@@ -103,7 +105,7 @@ export default function InStoreSaleForm({
           <option value="">Chọn sản phẩm...</option>
           {options.map((o) => (
             <option key={o.variantId} value={o.variantId} disabled={o.stock <= 0}>
-              {o.label} — {formatVND(o.price)} (còn {o.stock})
+              {o.label} — {formatVND(o.price)}/{o.unit} (còn {o.stock} {o.unit})
             </option>
           ))}
         </select>
@@ -132,6 +134,7 @@ export default function InStoreSaleForm({
                 onChange={(e) => updateQuantity(item.variantId, Number(e.target.value))}
                 className="w-16 rounded-md border border-gray-300 px-2 py-1 text-center"
               />
+              <span className="w-10 text-xs text-gray-400">{option.unit}</span>
               <span className="w-24 text-right font-medium">
                 {formatVND(option.price * item.quantity)}
               </span>

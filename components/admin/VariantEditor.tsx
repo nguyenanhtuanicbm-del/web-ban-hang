@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { Variant } from "@/lib/types";
+import { UNIT_OPTIONS, Variant } from "@/lib/types";
 import { slugify } from "@/lib/format";
 
 interface AttributeRow {
@@ -20,6 +20,7 @@ interface VariantRow {
   price: string;
   costPrice: string;
   lowStockThreshold: string;
+  unit: string;
   initialStock: string;
   currentStock: number | null;
   isActive: boolean;
@@ -51,6 +52,7 @@ function attributesToRows(variants: Variant[]): {
     price: String(v.price ?? 0),
     costPrice: String(v.cost_price ?? 0),
     lowStockThreshold: String(v.low_stock_threshold ?? 5),
+    unit: v.unit || "Cái",
     initialStock: "0",
     currentStock: v.total_stock ?? 0,
     isActive: v.is_active,
@@ -109,6 +111,7 @@ function emptyRow(): VariantRow {
     price: "",
     costPrice: "0",
     lowStockThreshold: "5",
+    unit: "Cái",
     initialStock: "0",
     currentStock: null,
     isActive: true,
@@ -214,6 +217,7 @@ export default function VariantEditor({ initialVariants }: { initialVariants: Va
               <th className="px-3 py-2">Mã vạch</th>
               <th className="px-3 py-2">Giá bán lẻ *</th>
               <th className="px-3 py-2">Giá vốn</th>
+              <th className="px-3 py-2">Đơn vị tính</th>
               <th className="px-3 py-2">Ngưỡng cảnh báo</th>
               <th className="px-3 py-2">{hasExisting ? "Tồn hiện tại" : "Tồn ban đầu"}</th>
               <th className="px-3 py-2">Đang bán</th>
@@ -260,6 +264,19 @@ export default function VariantEditor({ initialVariants }: { initialVariants: Va
                     onChange={(e) => updateRow(row.key, { costPrice: e.target.value })}
                     className="w-24 rounded-md border border-gray-300 px-2 py-1"
                   />
+                </td>
+                <td className="px-3 py-2">
+                  <select
+                    value={row.unit}
+                    onChange={(e) => updateRow(row.key, { unit: e.target.value })}
+                    className="w-24 rounded-md border border-gray-300 px-2 py-1"
+                  >
+                    {UNIT_OPTIONS.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td className="px-3 py-2">
                   <input

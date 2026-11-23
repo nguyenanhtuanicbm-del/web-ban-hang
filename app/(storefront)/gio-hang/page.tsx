@@ -49,12 +49,15 @@ export default function CartPage() {
                 {item.productName}
               </Link>
               {item.variantLabel && <p className="text-xs text-gray-500">{item.variantLabel}</p>}
-              <p className="mt-1 text-sm text-gray-500">{formatVND(item.price)}</p>
+              <p className="mt-1 text-sm text-gray-500">
+                {formatVND(item.price)}/{item.unit || "Cái"}
+              </p>
             </div>
             <div className="flex items-center gap-4">
               <QuantityStepper
                 value={item.quantity}
                 max={item.stock}
+                unit={item.unit || "Cái"}
                 onChange={(q) => updateQuantity(item.variantId, q)}
               />
               <div className="w-24 text-right font-medium text-gray-900">

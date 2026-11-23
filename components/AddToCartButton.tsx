@@ -31,6 +31,7 @@ export default function AddToCartButton({
       image: product.images?.[0] ?? null,
       quantity,
       stock,
+      unit: variant.unit || "Cái",
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
@@ -49,7 +50,7 @@ export default function AddToCartButton({
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <QuantityStepper value={quantity} max={stock} onChange={setQuantity} />
+      <QuantityStepper value={quantity} max={stock} unit={variant.unit || "Cái"} onChange={setQuantity} />
       <div className="flex gap-2">
         <button
           onClick={handleAdd}

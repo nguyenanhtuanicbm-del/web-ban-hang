@@ -9,3 +9,8 @@ export function productMinPrice(product: Product): number {
 export function productTotalStock(product: Product): number {
   return (product.variants ?? []).reduce((sum, v) => sum + (v.total_stock ?? 0), 0);
 }
+
+/** Đơn vị tính hiển thị cho sản phẩm — lấy từ biến thể đầu tiên (đa số sản phẩm dùng 1 đơn vị). */
+export function productUnit(product: Product): string {
+  return product.variants?.[0]?.unit || "Cái";
+}

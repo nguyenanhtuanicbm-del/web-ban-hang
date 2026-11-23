@@ -22,6 +22,7 @@ interface PoItemRow {
   variant: {
     sku: string;
     attributes: Record<string, string>;
+    unit: string;
     product: { name: string } | null;
   } | null;
 }
@@ -37,7 +38,7 @@ export default async function PurchaseOrderDetailPage({
   const { data: po } = await supabase
     .from("purchase_orders")
     .select(
-      "*, supplier:suppliers(name), warehouse:warehouses(name), items:purchase_order_items(*, variant:product_variants(sku, attributes, product:products(name)))"
+      "*, supplier:suppliers(name), warehouse:warehouses(name), items:purchase_order_items(*, variant:product_variants(sku, attributes, unit, product:products(name)))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -90,7 +91,7 @@ export default async function PurchaseOrderDetailPage({
                     {attrLabel ? ` (${attrLabel})` : ""}
                   </div>
                   <div className="text-xs text-gray-400">
-                    SL: {item.quantity} × {formatVND(item.unit_cost)}
+                    SL: {item.quantity} {item.variant?.unit} × {formatVND(item.unit_cost)}
                     {item.lot_code ? ` · Lô ${item.lot_code}` : ""}
                     {item.expiry_date ? ` · HSD ${item.expiry_date}` : ""}
                   </div>

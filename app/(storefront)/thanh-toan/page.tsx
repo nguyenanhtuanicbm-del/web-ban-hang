@@ -140,7 +140,7 @@ export default function CheckoutPage() {
             <div key={item.variantId} className="flex justify-between text-sm">
               <span className="text-gray-700">
                 {item.productName}
-                {item.variantLabel ? ` (${item.variantLabel})` : ""} x{item.quantity}
+                {item.variantLabel ? ` (${item.variantLabel})` : ""} x{item.quantity} {item.unit || "Cái"}
               </span>
               <span className="font-medium text-gray-900">
                 {formatVND(item.price * item.quantity)}
