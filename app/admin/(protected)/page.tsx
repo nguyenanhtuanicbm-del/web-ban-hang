@@ -20,7 +20,7 @@ export default async function AdminDashboardPage() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const [newOrders, todayOrders, lowStock, recentOrders] = await Promise.all([
+  const [newOrders, todayOrders, lowStock, recentOrders, stockValue] = await Promise.all([
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "new"),
     supabase
       .from("orders")
@@ -33,28 +33,50 @@ export default async function AdminDashboardPage() {
       .order("total_quantity", { ascending: true })
       .limit(10),
     supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(5),
+    supabase.from("inventory_value").select("stock_value"),
   ]);
 
   const revenueToday = (todayOrders.data ?? []).reduce((sum, o) => sum + Number(o.total), 0);
   const lowStockRows = (lowStock.data ?? []) as LowStockRow[];
+  const totalStockValue = (stockValue.data ?? []).reduce((sum, r) => sum + Number(r.stock_value), 0);
 
-  const stats = [
+  const stats: { label: string; value: string | number; href?: string }[] = [
     { label: "Đơn hàng mới", value: newOrders.count ?? 0 },
     { label: "Doanh thu hôm nay", value: formatVND(revenueToday) },
     { label: "Sắp hết hàng", value: lowStockRows.length },
+    {
+      label: "Giá trị tồn kho",
+      value: formatVND(totalStockValue),
+      href: "/admin/kho/gia-tri-ton-kho",
+    },
   ];
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold text-gray-900">Tổng quan</h1>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-sm text-gray-500">{stat.label}</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{stat.value}</p>
-          </div>
-        ))}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => {
+          const content = (
+            <>
+              <p className="text-sm text-gray-500">{stat.label}</p>
+              <p className="mt-1 text-2xl font-bold text-gray-900">{stat.value}</p>
+            </>
+          );
+          return stat.href ? (
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className="rounded-lg border border-gray-200 bg-white p-4 transition hover:border-brand-600"
+            >
+              {content}
+            </Link>
+          ) : (
+            <div key={stat.label} className="rounded-lg border border-gray-200 bg-white p-4">
+              {content}
+            </div>
+          );
+        })}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

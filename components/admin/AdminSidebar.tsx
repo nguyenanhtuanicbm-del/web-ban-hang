@@ -16,6 +16,7 @@ import {
   ClipboardCheck,
   ArrowLeftRight,
   ScrollText,
+  Wallet,
   LogOut,
   Menu,
   X,
@@ -46,6 +47,7 @@ const groups = [
       { href: "/admin/kho/kiem-ke", label: "Kiểm kho", icon: ClipboardCheck },
       { href: "/admin/kho/dieu-chuyen", label: "Điều chuyển kho", icon: ArrowLeftRight },
       { href: "/admin/kho/the-kho", label: "Thẻ kho", icon: ScrollText },
+      { href: "/admin/kho/gia-tri-ton-kho", label: "Giá trị tồn kho", icon: Wallet },
     ],
   },
   {
