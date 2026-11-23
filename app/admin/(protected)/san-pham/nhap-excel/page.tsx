@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { importProductsFromExcel, type ImportResult } from "./actions";
 
 const initialState: ImportResult = {};
+const MAX_FILE_MB = 5;
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -23,6 +24,19 @@ function SubmitButton() {
 
 export default function ImportExcelPage() {
   const [state, formAction] = useActionState(importProductsFromExcel, initialState);
+  const [fileWarning, setFileWarning] = useState<string | null>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file && file.size > MAX_FILE_MB * 1024 * 1024) {
+      setFileWarning(
+        `File "${file.name}" (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá ${MAX_FILE_MB}MB cho phép. Vui lòng chia nhỏ dữ liệu thành nhiều file rồi nhập từng file.`
+      );
+      e.target.value = "";
+    } else {
+      setFileWarning(null);
+    }
+  }
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -62,8 +76,11 @@ export default function ImportExcelPage() {
             type="file"
             accept=".xlsx,.xls"
             required
+            onChange={handleFileChange}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           />
+          {fileWarning && <p className="mt-1 text-sm text-red-600">{fileWarning}</p>}
+          <p className="mt-1 text-xs text-gray-400">Dung lượng file tối đa {MAX_FILE_MB}MB.</p>
         </div>
         <SubmitButton />
       </form>

@@ -89,64 +89,69 @@ export async function importProductsFromExcel(
   }
 
   const columnIndex: Record<string, number> = {};
-  sheet.getRow(1).eachCell((cell, colNumber) => {
-    columnIndex[cellText(cell.value)] = colNumber;
-  });
-
-  for (const col of ["Tên sản phẩm", "SKU", "Giá bán"]) {
-    if (!columnIndex[col]) {
-      return { error: `File thiếu cột bắt buộc "${col}". Vui lòng tải lại file mẫu.` };
-    }
-  }
-
   const rows: ParsedRow[] = [];
   const rowErrors: ImportRowError[] = [];
-  const seenSkus = new Set<string>();
 
-  sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-    if (rowNumber === 1) return;
-
-    const get = (col: string) => (columnIndex[col] ? row.getCell(columnIndex[col]).value : null);
-
-    const productName = cellText(get("Tên sản phẩm"));
-    const sku = cellText(get("SKU"));
-
-    if (!productName && !sku) return;
-
-    if (!productName) {
-      rowErrors.push({ row: rowNumber, reason: "Thiếu tên sản phẩm." });
-      return;
-    }
-    if (!sku) {
-      rowErrors.push({ row: rowNumber, reason: "Thiếu SKU." });
-      return;
-    }
-    if (seenSkus.has(sku)) {
-      rowErrors.push({ row: rowNumber, reason: `SKU "${sku}" bị trùng trong file.` });
-      return;
-    }
-    const price = cellNumber(get("Giá bán"));
-    if (!price) {
-      rowErrors.push({ row: rowNumber, reason: "Thiếu hoặc sai giá bán." });
-      return;
-    }
-
-    seenSkus.add(sku);
-    rows.push({
-      rowNumber,
-      productName,
-      categoryName: cellText(get("Danh mục")),
-      description: cellText(get("Mô tả")),
-      attributes: parseAttributes(cellText(get("Thuộc tính"))),
-      sku,
-      barcode: cellText(get("Mã vạch")),
-      price,
-      costPrice: cellNumber(get("Giá vốn")),
-      unit: cellText(get("Đơn vị tính")) || "Cái",
-      initialStock: cellNumber(get("Tồn kho ban đầu")),
-      lowStockThreshold: cellNumber(get("Ngưỡng cảnh báo tồn")) || 5,
+  try {
+    sheet.getRow(1).eachCell((cell, colNumber) => {
+      columnIndex[cellText(cell.value)] = colNumber;
     });
-  });
+
+    for (const col of ["Tên sản phẩm", "SKU", "Giá bán"]) {
+      if (!columnIndex[col]) {
+        return { error: `File thiếu cột bắt buộc "${col}". Vui lòng tải lại file mẫu.` };
+      }
+    }
+
+    const seenSkus = new Set<string>();
+
+    sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber === 1) return;
+
+      const get = (col: string) => (columnIndex[col] ? row.getCell(columnIndex[col]).value : null);
+
+      const productName = cellText(get("Tên sản phẩm"));
+      const sku = cellText(get("SKU"));
+
+      if (!productName && !sku) return;
+
+      if (!productName) {
+        rowErrors.push({ row: rowNumber, reason: "Thiếu tên sản phẩm." });
+        return;
+      }
+      if (!sku) {
+        rowErrors.push({ row: rowNumber, reason: "Thiếu SKU." });
+        return;
+      }
+      if (seenSkus.has(sku)) {
+        rowErrors.push({ row: rowNumber, reason: `SKU "${sku}" bị trùng trong file.` });
+        return;
+      }
+      const price = cellNumber(get("Giá bán"));
+      if (!price) {
+        rowErrors.push({ row: rowNumber, reason: "Thiếu hoặc sai giá bán." });
+        return;
+      }
+
+      seenSkus.add(sku);
+      rows.push({
+        rowNumber,
+        productName,
+        categoryName: cellText(get("Danh mục")),
+        description: cellText(get("Mô tả")),
+        attributes: parseAttributes(cellText(get("Thuộc tính"))),
+        sku,
+        barcode: cellText(get("Mã vạch")),
+        price,
+        costPrice: cellNumber(get("Giá vốn")),
+        unit: cellText(get("Đơn vị tính")) || "Cái",
+        initialStock: cellNumber(get("Tồn kho ban đầu")),
+        lowStockThreshold: cellNumber(get("Ngưỡng cảnh báo tồn")) || 5,
+      });
+    });
+  } catch {
+    return { error: "Không đọc được dữ liệu trong file. Vui lòng kiểm tra lại định dạng theo file mẫu." };
+  }
 
   if (rows.length === 0) {
     return { error: "Không có dòng dữ liệu hợp lệ nào trong file.", rowErrors };
