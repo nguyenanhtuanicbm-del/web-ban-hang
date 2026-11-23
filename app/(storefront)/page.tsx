@@ -2,10 +2,21 @@ import Link from "next/link";
 import { getActiveProducts, getCategories } from "@/lib/queries";
 import ProductGrid from "@/components/ProductGrid";
 
-export const revalidate = 0;
+// Không đọc searchParams nên Next.js cache được theo URL — tối đa 30s dữ liệu cũ,
+// chấp nhận được vì /api/orders luôn tính lại giá/tồn kho thật lúc đặt hàng.
+export const revalidate = 30;
 
 export default async function HomePage() {
-  const [products, categories] = await Promise.all([getActiveProducts(), getCategories()]);
+  // Trang này được Next.js tiền xử lý (prerender) lúc build — nếu Supabase tạm thời không
+  // phản hồi được đúng lúc đó, bắt lỗi để build vẫn thành công (hiện rỗng tạm thời) thay vì
+  // làm hỏng cả lần deploy; trang sẽ tự có dữ liệu đúng ở lần ghé thăm/revalidate kế tiếp.
+  let products: Awaited<ReturnType<typeof getActiveProducts>> = [];
+  let categories: Awaited<ReturnType<typeof getCategories>> = [];
+  try {
+    [products, categories] = await Promise.all([getActiveProducts(), getCategories()]);
+  } catch (error) {
+    console.error("Không tải được sản phẩm/danh mục cho trang chủ:", error);
+  }
   const featured = products.slice(0, 8);
 
   return (

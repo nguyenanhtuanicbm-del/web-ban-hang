@@ -4,7 +4,9 @@ import { getProductBySlug } from "@/lib/queries";
 import ProductGallery from "@/components/ProductGallery";
 import ProductPurchasePanel from "@/components/ProductPurchasePanel";
 
-export const revalidate = 0;
+// Route param (không phải searchParams) nên Next.js cache theo từng slug — tối đa 30s dữ
+// liệu cũ, chấp nhận được vì /api/orders luôn tính lại giá/tồn kho thật lúc đặt hàng.
+export const revalidate = 30;
 
 export default async function ProductDetailPage({
   params,

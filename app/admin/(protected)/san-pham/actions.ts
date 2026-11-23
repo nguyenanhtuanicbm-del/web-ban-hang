@@ -142,6 +142,8 @@ export async function createProduct(formData: FormData) {
   }
 
   revalidatePath("/admin/san-pham");
+  revalidatePath("/");
+  revalidatePath(`/san-pham/${product.slug}`);
   redirect("/admin/san-pham");
 }
 
@@ -237,6 +239,8 @@ export async function updateProduct(formData: FormData) {
   }
 
   revalidatePath("/admin/san-pham");
+  revalidatePath("/");
+  revalidatePath(`/san-pham/${fields.slug}`);
   redirect("/admin/san-pham");
 }
 
@@ -245,6 +249,10 @@ export async function deleteProduct(formData: FormData) {
   if (!id) return;
 
   const supabase = await createClient();
+  const { data: product } = await supabase.from("products").select("slug").eq("id", id).maybeSingle();
   await supabase.from("products").delete().eq("id", id);
+
   revalidatePath("/admin/san-pham");
+  revalidatePath("/");
+  if (product?.slug) revalidatePath(`/san-pham/${product.slug}`);
 }

@@ -85,7 +85,7 @@ export default function StockTransferForm({
     <form action={action} className="flex max-w-3xl flex-col gap-4">
       <input type="hidden" name="items_json" value={JSON.stringify(items)} />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Từ kho *</label>
           <select

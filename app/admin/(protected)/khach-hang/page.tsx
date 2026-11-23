@@ -24,7 +24,7 @@ export default async function CustomersPage({
 
       <form
         action={createCustomer}
-        className="grid max-w-3xl grid-cols-2 gap-3 rounded-lg border border-gray-200 bg-white p-4"
+        className="grid max-w-3xl grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white p-4 sm:grid-cols-2"
       >
         <input
           name="name"
@@ -40,16 +40,16 @@ export default async function CustomersPage({
         <input
           name="address"
           placeholder="Địa chỉ"
-          className="col-span-2 rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none sm:col-span-2"
         />
         <input
           name="note"
           placeholder="Ghi chú"
-          className="col-span-2 rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none sm:col-span-2"
         />
         <button
           type="submit"
-          className="col-span-2 w-fit rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+          className="w-fit rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 sm:col-span-2"
         >
           Thêm khách hàng
         </button>

@@ -1,9 +1,9 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Category, Product, Variant } from "@/lib/types";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
-
-async function getDefaultPriceListId(supabase: SupabaseServerClient): Promise<string | null> {
+async function getDefaultPriceListId(supabase: SupabaseClient): Promise<string | null> {
   const { data } = await supabase
     .from("price_lists")
     .select("id")
@@ -20,7 +20,7 @@ async function getDefaultPriceListId(supabase: SupabaseServerClient): Promise<st
  * lấy nó song song với truy vấn sản phẩm chính, giảm số round-trip nối tiếp.
  */
 async function attachPricingAndStock(
-  supabase: SupabaseServerClient,
+  supabase: SupabaseClient,
   variants: Variant[],
   defaultPriceListId: string | null
 ): Promise<Variant[]> {
@@ -51,15 +51,18 @@ async function attachPricingAndStock(
   }));
 }
 
+// ===== Truy vấn công khai (storefront) — dùng client KHÔNG cookie để trang có thể
+// static/ISR cache theo `export const revalidate` của từng page. =====
+
 export async function getCategories(): Promise<Category[]> {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data, error } = await supabase.from("categories").select("*").order("name");
   if (error) throw error;
   return data ?? [];
 }
 
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data } = await supabase.from("categories").select("*").eq("slug", slug).maybeSingle();
   return data ?? null;
 }
@@ -68,7 +71,7 @@ export async function getActiveProducts(options?: {
   categorySlug?: string;
   search?: string;
 }): Promise<Product[]> {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const [category, defaultPriceListId] = await Promise.all([
     options?.categorySlug ? getCategoryBySlug(options.categorySlug) : Promise.resolve(null),
@@ -108,7 +111,7 @@ export async function getActiveProducts(options?: {
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const [productResult, defaultPriceListId] = await Promise.all([
     supabase
@@ -128,6 +131,9 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
   return { ...product, variants: priced };
 }
+
+// ===== Truy vấn quản trị — dùng client có cookie (phiên đăng nhập) vì cần thấy cả
+// sản phẩm đang ẩn, luôn render động (không cache). =====
 
 /** Dùng cho trang quản trị — lấy tất cả sản phẩm (kể cả đang ẩn) kèm mọi biến thể. */
 export async function getAllProductsForAdmin(): Promise<Product[]> {
