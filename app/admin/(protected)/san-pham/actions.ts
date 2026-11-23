@@ -54,8 +54,9 @@ async function uploadImages(
   supabase: SupabaseServerClient,
   productId: string,
   files: File[]
-): Promise<string[]> {
+): Promise<{ urls: string[]; failed: number }> {
   const urls: string[] = [];
+  let failed = 0;
 
   for (const file of files) {
     if (!file || file.size === 0) continue;
@@ -65,13 +66,16 @@ async function uploadImages(
     const { error } = await supabase.storage.from("product-images").upload(path, file, {
       contentType: file.type || "image/jpeg",
     });
-    if (error) continue;
+    if (error) {
+      failed += 1;
+      continue;
+    }
 
     const { data } = supabase.storage.from("product-images").getPublicUrl(path);
     urls.push(data.publicUrl);
   }
 
-  return urls;
+  return { urls, failed };
 }
 
 export async function createProduct(formData: FormData) {
@@ -101,7 +105,7 @@ export async function createProduct(formData: FormData) {
   }
 
   const files = formData.getAll("images").filter((f): f is File => f instanceof File);
-  const urls = await uploadImages(supabase, product.id, files);
+  const { urls, failed: failedImages } = await uploadImages(supabase, product.id, files);
   if (urls.length > 0) {
     await supabase.from("products").update({ images: urls }).eq("id", product.id);
   }
@@ -156,7 +160,11 @@ export async function createProduct(formData: FormData) {
   revalidatePath("/admin/san-pham");
   revalidatePath("/");
   revalidatePath(`/san-pham/${product.slug}`);
-  await setFlash("success", `Đã tạo sản phẩm "${fields.name}".`);
+  await setFlash(
+    "success",
+    `Đã tạo sản phẩm "${fields.name}".` +
+      (failedImages > 0 ? ` (${failedImages} ảnh tải lên thất bại, vui lòng thử lại.)` : "")
+  );
   redirect("/admin/san-pham");
 }
 
@@ -187,7 +195,7 @@ export async function updateProduct(formData: FormData) {
   let images: string[] = (existing?.images ?? []).filter((url: string) => keepUrls.includes(url));
 
   const files = formData.getAll("images").filter((f): f is File => f instanceof File);
-  const newUrls = await uploadImages(supabase, id, files);
+  const { urls: newUrls, failed: failedImages } = await uploadImages(supabase, id, files);
   images = [...images, ...newUrls];
   await supabase.from("products").update({ images }).eq("id", id);
 
@@ -268,7 +276,11 @@ export async function updateProduct(formData: FormData) {
   revalidatePath("/admin/san-pham");
   revalidatePath("/");
   revalidatePath(`/san-pham/${fields.slug}`);
-  await setFlash("success", `Đã lưu thay đổi sản phẩm "${fields.name}".`);
+  await setFlash(
+    "success",
+    `Đã lưu thay đổi sản phẩm "${fields.name}".` +
+      (failedImages > 0 ? ` (${failedImages} ảnh tải lên thất bại, vui lòng thử lại.)` : "")
+  );
   redirect("/admin/san-pham");
 }
 

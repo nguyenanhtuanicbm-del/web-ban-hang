@@ -1,6 +1,7 @@
 import { Category, Product } from "@/lib/types";
 import ProductImage from "@/components/ProductImage";
 import VariantEditor from "@/components/admin/VariantEditor";
+import ImageFilePicker from "@/components/admin/ImageFilePicker";
 
 export default function ProductForm({
   categories,
@@ -80,13 +81,7 @@ export default function ProductForm({
 
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Thêm ảnh mới</label>
-        <input
-          name="images"
-          type="file"
-          accept="image/*"
-          multiple
-          className="w-full max-w-2xl rounded-md border border-gray-300 px-3 py-2 text-sm"
-        />
+        <ImageFilePicker name="images" />
       </div>
 
       <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
