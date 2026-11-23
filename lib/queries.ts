@@ -61,40 +61,18 @@ export async function getCategories(): Promise<Category[]> {
   return data ?? [];
 }
 
-export async function getCategoryBySlug(slug: string): Promise<Category | null> {
-  const supabase = createPublicClient();
-  const { data } = await supabase.from("categories").select("*").eq("slug", slug).maybeSingle();
-  return data ?? null;
-}
-
-export async function getActiveProducts(options?: {
-  categorySlug?: string;
-  search?: string;
-}): Promise<Product[]> {
+/** Lấy toàn bộ sản phẩm active — lọc theo danh mục được làm ở client (xem ProductsBrowser). */
+export async function getActiveProducts(): Promise<Product[]> {
   const supabase = createPublicClient();
 
-  const [category, defaultPriceListId] = await Promise.all([
-    options?.categorySlug ? getCategoryBySlug(options.categorySlug) : Promise.resolve(null),
+  const [{ data, error }, defaultPriceListId] = await Promise.all([
+    supabase
+      .from("products")
+      .select("*, category:categories(*), variants:product_variants(*)")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false }),
     getDefaultPriceListId(supabase),
   ]);
-
-  if (options?.categorySlug && !category) return [];
-
-  let query = supabase
-    .from("products")
-    .select("*, category:categories(*), variants:product_variants(*)")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
-
-  if (category) {
-    query = query.eq("category_id", category.id);
-  }
-
-  if (options?.search) {
-    query = query.ilike("name", `%${options.search}%`);
-  }
-
-  const { data, error } = await query;
   if (error) throw error;
 
   const products = (data ?? []) as Product[];
@@ -177,14 +155,4 @@ export async function getProductByIdForAdmin(id: string): Promise<Product | null
   const product = productResult.data as Product;
   const priced = await attachPricingAndStock(supabase, product.variants ?? [], defaultPriceListId);
   return { ...product, variants: priced };
-}
-
-/** Giá thấp nhất trong các biến thể — dùng hiển thị "từ X đ" khi có nhiều biến thể. */
-export function productMinPrice(product: Product): number {
-  const prices = (product.variants ?? []).map((v) => v.price ?? 0);
-  return prices.length > 0 ? Math.min(...prices) : 0;
-}
-
-export function productTotalStock(product: Product): number {
-  return (product.variants ?? []).reduce((sum, v) => sum + (v.total_stock ?? 0), 0);
 }

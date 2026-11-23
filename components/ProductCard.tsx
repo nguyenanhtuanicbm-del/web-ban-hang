@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Product } from "@/lib/types";
 import { formatVND } from "@/lib/format";
-import { productMinPrice, productTotalStock } from "@/lib/queries";
+import { productMinPrice, productTotalStock } from "@/lib/product-helpers";
 import ProductImage from "./ProductImage";
 
 export default function ProductCard({ product }: { product: Product }) {

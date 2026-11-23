@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { getAllProductsForAdmin, productMinPrice, productTotalStock } from "@/lib/queries";
+import { getAllProductsForAdmin } from "@/lib/queries";
+import { productMinPrice, productTotalStock } from "@/lib/product-helpers";
 import { formatVND } from "@/lib/format";
 import ProductImage from "@/components/ProductImage";
 import { deleteProduct } from "./actions";
