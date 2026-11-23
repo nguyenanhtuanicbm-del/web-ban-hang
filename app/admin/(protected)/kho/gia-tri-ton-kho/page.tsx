@@ -102,7 +102,47 @@ export default async function StockValuePage({
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      {/* Điện thoại: dạng thẻ — bảng 8 cột quá chật, cuộn ngang khó đọc nên tách riêng. */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {filtered.map((r) => (
+          <div key={r.variantId} className="rounded-lg border border-gray-200 bg-white p-3 text-sm">
+            <div className="font-medium text-gray-900">
+              {r.productName}
+              {r.attrLabel ? ` (${r.attrLabel})` : ""}
+              {!r.isActive && <span className="ml-2 text-xs text-gray-400">(đã ẩn)</span>}
+            </div>
+            <div className="text-xs text-gray-400">
+              {r.sku} · {r.categoryName ?? "—"}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-y-1 text-xs">
+              <span className="text-gray-500">Tồn kho</span>
+              <span
+                className={`text-right ${
+                  r.quantity <= r.lowStockThreshold ? "font-medium text-amber-600" : ""
+                }`}
+              >
+                {r.quantity}
+              </span>
+              <span className="text-gray-500">Giá vốn</span>
+              <span className="text-right">{formatVND(r.costPrice)}</span>
+              <span className="text-gray-500">Giá trị vốn</span>
+              <span className="text-right font-medium">{formatVND(r.quantity * r.costPrice)}</span>
+              <span className="text-gray-500">Giá bán</span>
+              <span className="text-right">{formatVND(r.price)}</span>
+              <span className="text-gray-500">Giá trị bán</span>
+              <span className="text-right">{formatVND(r.quantity * r.price)}</span>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <p className="rounded-lg border border-dashed border-gray-300 py-6 text-center text-gray-400">
+            Không có sản phẩm nào.
+          </p>
+        )}
+      </div>
+
+      {/* Máy tính/tablet: bảng đầy đủ như cũ. */}
+      <div className="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500">
