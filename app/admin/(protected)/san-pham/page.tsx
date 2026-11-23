@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSpreadsheet } from "lucide-react";
 import { getAllProductsForAdmin } from "@/lib/queries";
 import { productMinPrice, productTotalStock } from "@/lib/product-helpers";
 import { formatVND } from "@/lib/format";
@@ -15,13 +15,22 @@ export default async function AdminProductsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Sản phẩm</h1>
-        <Link
-          href="/admin/san-pham/moi"
-          className="flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
-        >
-          <Plus className="h-4 w-4" />
-          Thêm sản phẩm
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/san-pham/nhap-excel"
+            className="flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:border-brand-600 hover:text-brand-600"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Nhập từ Excel
+          </Link>
+          <Link
+            href="/admin/san-pham/moi"
+            className="flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+          >
+            <Plus className="h-4 w-4" />
+            Thêm sản phẩm
+          </Link>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
