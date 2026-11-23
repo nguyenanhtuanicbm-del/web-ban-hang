@@ -16,15 +16,17 @@ async function getDefaultPriceListId(supabase: SupabaseServerClient): Promise<st
  * Gắn giá bán lẻ (bảng giá mặc định) + tổng tồn kho mọi kho vào từng biến thể.
  * Tránh cú pháp filter trên embedded resource của PostgREST (dễ sai khi không
  * test trực tiếp trên DB thật) — query riêng rồi merge ở application layer.
+ * Nhận `defaultPriceListId` làm tham số (thay vì tự fetch) để nơi gọi có thể
+ * lấy nó song song với truy vấn sản phẩm chính, giảm số round-trip nối tiếp.
  */
 async function attachPricingAndStock(
   supabase: SupabaseServerClient,
-  variants: Variant[]
+  variants: Variant[],
+  defaultPriceListId: string | null
 ): Promise<Variant[]> {
   if (variants.length === 0) return variants;
 
   const variantIds = variants.map((v) => v.id);
-  const defaultPriceListId = await getDefaultPriceListId(supabase);
 
   const [priceItemsResult, stockTotalsResult] = await Promise.all([
     defaultPriceListId
@@ -67,15 +69,21 @@ export async function getActiveProducts(options?: {
   search?: string;
 }): Promise<Product[]> {
   const supabase = await createClient();
+
+  const [category, defaultPriceListId] = await Promise.all([
+    options?.categorySlug ? getCategoryBySlug(options.categorySlug) : Promise.resolve(null),
+    getDefaultPriceListId(supabase),
+  ]);
+
+  if (options?.categorySlug && !category) return [];
+
   let query = supabase
     .from("products")
     .select("*, category:categories(*), variants:product_variants(*)")
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 
-  if (options?.categorySlug) {
-    const category = await getCategoryBySlug(options.categorySlug);
-    if (!category) return [];
+  if (category) {
     query = query.eq("category_id", category.id);
   }
 
@@ -88,7 +96,7 @@ export async function getActiveProducts(options?: {
 
   const products = (data ?? []) as Product[];
   const allVariants = products.flatMap((p) => (p.variants ?? []).filter((v) => v.is_active));
-  const priced = await attachPricingAndStock(supabase, allVariants);
+  const priced = await attachPricingAndStock(supabase, allVariants, defaultPriceListId);
   const pricedById = new Map(priced.map((v) => [v.id, v]));
 
   return products.map((p) => ({
@@ -101,18 +109,22 @@ export async function getActiveProducts(options?: {
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("products")
-    .select("*, category:categories(*), variants:product_variants(*)")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
 
-  if (!data) return null;
+  const [productResult, defaultPriceListId] = await Promise.all([
+    supabase
+      .from("products")
+      .select("*, category:categories(*), variants:product_variants(*)")
+      .eq("slug", slug)
+      .eq("is_active", true)
+      .maybeSingle(),
+    getDefaultPriceListId(supabase),
+  ]);
 
-  const product = data as Product;
+  if (!productResult.data) return null;
+
+  const product = productResult.data as Product;
   const activeVariants = (product.variants ?? []).filter((v) => v.is_active);
-  const priced = await attachPricingAndStock(supabase, activeVariants);
+  const priced = await attachPricingAndStock(supabase, activeVariants, defaultPriceListId);
 
   return { ...product, variants: priced };
 }
@@ -120,15 +132,19 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 /** Dùng cho trang quản trị — lấy tất cả sản phẩm (kể cả đang ẩn) kèm mọi biến thể. */
 export async function getAllProductsForAdmin(): Promise<Product[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select("*, category:categories(*), variants:product_variants(*)")
-    .order("created_at", { ascending: false });
+
+  const [{ data, error }, defaultPriceListId] = await Promise.all([
+    supabase
+      .from("products")
+      .select("*, category:categories(*), variants:product_variants(*)")
+      .order("created_at", { ascending: false }),
+    getDefaultPriceListId(supabase),
+  ]);
   if (error) throw error;
 
   const products = (data ?? []) as Product[];
   const allVariants = products.flatMap((p) => p.variants ?? []);
-  const priced = await attachPricingAndStock(supabase, allVariants);
+  const priced = await attachPricingAndStock(supabase, allVariants, defaultPriceListId);
   const pricedById = new Map(priced.map((v) => [v.id, v]));
 
   return products.map((p) => ({
@@ -140,16 +156,20 @@ export async function getAllProductsForAdmin(): Promise<Product[]> {
 /** Dùng cho trang sửa sản phẩm trong admin — kèm biến thể đang ẩn để còn chỉnh/kích hoạt lại. */
 export async function getProductByIdForAdmin(id: string): Promise<Product | null> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("products")
-    .select("*, category:categories(*), variants:product_variants(*)")
-    .eq("id", id)
-    .maybeSingle();
 
-  if (!data) return null;
+  const [productResult, defaultPriceListId] = await Promise.all([
+    supabase
+      .from("products")
+      .select("*, category:categories(*), variants:product_variants(*)")
+      .eq("id", id)
+      .maybeSingle(),
+    getDefaultPriceListId(supabase),
+  ]);
 
-  const product = data as Product;
-  const priced = await attachPricingAndStock(supabase, product.variants ?? []);
+  if (!productResult.data) return null;
+
+  const product = productResult.data as Product;
+  const priced = await attachPricingAndStock(supabase, product.variants ?? [], defaultPriceListId);
   return { ...product, variants: priced };
 }
 
