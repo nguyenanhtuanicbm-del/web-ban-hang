@@ -36,30 +36,31 @@ export default function CartPage() {
       <div className="flex flex-col gap-4">
         {items.map((item) => (
           <div
-            key={item.productId}
+            key={item.variantId}
             className="flex items-center gap-4 rounded-lg border border-gray-200 p-3"
           >
             <ProductImage
               src={item.image}
-              alt={item.name}
+              alt={item.productName}
               className="h-20 w-20 flex-shrink-0 rounded-md"
             />
             <div className="flex-1">
               <Link href={`/san-pham/${item.slug}`} className="font-medium text-gray-900 hover:text-brand-600">
-                {item.name}
+                {item.productName}
               </Link>
+              {item.variantLabel && <p className="text-xs text-gray-500">{item.variantLabel}</p>}
               <p className="mt-1 text-sm text-gray-500">{formatVND(item.price)}</p>
             </div>
             <QuantityStepper
               value={item.quantity}
               max={item.stock}
-              onChange={(q) => updateQuantity(item.productId, q)}
+              onChange={(q) => updateQuantity(item.variantId, q)}
             />
             <div className="w-24 text-right font-medium text-gray-900">
               {formatVND(item.price * item.quantity)}
             </div>
             <button
-              onClick={() => removeItem(item.productId)}
+              onClick={() => removeItem(item.variantId)}
               className="p-2 text-gray-400 hover:text-red-600"
               aria-label="Xóa sản phẩm"
             >

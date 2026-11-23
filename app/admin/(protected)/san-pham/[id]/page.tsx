@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getProductByIdForAdmin } from "@/lib/queries";
 import ProductForm from "@/components/admin/ProductForm";
 import { updateProduct } from "../actions";
 
@@ -13,8 +14,8 @@ export default async function EditProductPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: product }, { data: categories }] = await Promise.all([
-    supabase.from("products").select("*").eq("id", id).maybeSingle(),
+  const [product, { data: categories }] = await Promise.all([
+    getProductByIdForAdmin(id),
     supabase.from("categories").select("*").order("name"),
   ]);
 

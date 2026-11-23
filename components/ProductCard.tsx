@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { Product } from "@/lib/types";
 import { formatVND } from "@/lib/format";
+import { productMinPrice, productTotalStock } from "@/lib/queries";
 import ProductImage from "./ProductImage";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const outOfStock = product.stock <= 0;
+  const outOfStock = productTotalStock(product) <= 0;
+  const hasMultipleVariants = (product.variants?.length ?? 0) > 1;
+  const price = productMinPrice(product);
 
   return (
     <Link
@@ -26,12 +29,9 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="p-3">
         <h3 className="line-clamp-2 text-sm font-medium text-gray-900">{product.name}</h3>
         <div className="mt-1 flex items-baseline gap-2">
-          <span className="font-semibold text-brand-600">{formatVND(product.price)}</span>
-          {product.compare_at_price && product.compare_at_price > product.price && (
-            <span className="text-xs text-gray-400 line-through">
-              {formatVND(product.compare_at_price)}
-            </span>
-          )}
+          <span className="font-semibold text-brand-600">
+            {hasMultipleVariants ? `Từ ${formatVND(price)}` : formatVND(price)}
+          </span>
         </div>
       </div>
     </Link>

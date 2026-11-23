@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatVND } from "@/lib/format";
-import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/types";
+import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, type OrderStatus } from "@/lib/types";
 import { updateOrderStatus } from "../actions";
 
 export const revalidate = 0;
@@ -68,6 +68,18 @@ export default async function OrderDetailPage({
           <dd>{order.note || "—"}</dd>
           <dt className="text-gray-500">Nguồn</dt>
           <dd>{order.source === "in_store" ? "Bán tại cửa hàng" : "Đặt online"}</dd>
+          <dt className="text-gray-500">Thanh toán</dt>
+          <dd>{PAYMENT_METHOD_LABEL[order.payment_method as keyof typeof PAYMENT_METHOD_LABEL]}</dd>
+          <dt className="text-gray-500">Đã thanh toán</dt>
+          <dd>{formatVND(order.paid_amount)}</dd>
+          {order.paid_amount < order.total && (
+            <>
+              <dt className="text-gray-500">Còn nợ</dt>
+              <dd className="font-semibold text-amber-600">
+                {formatVND(order.total - order.paid_amount)}
+              </dd>
+            </>
+          )}
         </dl>
       </div>
 

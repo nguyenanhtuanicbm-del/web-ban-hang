@@ -3,26 +3,34 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
-import { Product } from "@/lib/types";
+import { Product, Variant, formatVariantAttributes } from "@/lib/types";
 import { useCartStore } from "@/store/cart";
 import QuantityStepper from "./QuantityStepper";
 
-export default function AddToCartButton({ product }: { product: Product }) {
+export default function AddToCartButton({
+  product,
+  variant,
+}: {
+  product: Product;
+  variant: Variant;
+}) {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const router = useRouter();
-  const outOfStock = product.stock <= 0;
+  const stock = variant.total_stock ?? 0;
+  const outOfStock = stock <= 0;
 
   function handleAdd() {
     addItem({
-      productId: product.id,
-      name: product.name,
+      variantId: variant.id,
+      productName: product.name,
+      variantLabel: formatVariantAttributes(variant.attributes),
       slug: product.slug,
-      price: product.price,
+      price: variant.price ?? 0,
       image: product.images?.[0] ?? null,
       quantity,
-      stock: product.stock,
+      stock,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
@@ -41,7 +49,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <QuantityStepper value={quantity} max={product.stock} onChange={setQuantity} />
+      <QuantityStepper value={quantity} max={stock} onChange={setQuantity} />
       <div className="flex gap-2">
         <button
           onClick={handleAdd}

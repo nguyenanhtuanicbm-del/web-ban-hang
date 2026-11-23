@@ -3,11 +3,18 @@
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { formatVND } from "@/lib/format";
-import type { Product } from "@/lib/types";
+import { formatVariantAttributes, PAYMENT_METHOD_LABEL, type PaymentMethod, type Product } from "@/lib/types";
 
 interface LineItem {
-  productId: string;
+  variantId: string;
   quantity: number;
+}
+
+interface FlatVariantOption {
+  variantId: string;
+  label: string;
+  price: number;
+  stock: number;
 }
 
 function SubmitButton() {
@@ -23,6 +30,22 @@ function SubmitButton() {
   );
 }
 
+function flattenOptions(products: Product[]): FlatVariantOption[] {
+  const options: FlatVariantOption[] = [];
+  for (const product of products) {
+    for (const variant of product.variants ?? []) {
+      const attrLabel = formatVariantAttributes(variant.attributes);
+      options.push({
+        variantId: variant.id,
+        label: attrLabel ? `${product.name} - ${attrLabel}` : product.name,
+        price: variant.price ?? 0,
+        stock: variant.total_stock ?? 0,
+      });
+    }
+  }
+  return options;
+}
+
 export default function InStoreSaleForm({
   products,
   action,
@@ -30,54 +53,57 @@ export default function InStoreSaleForm({
   products: Product[];
   action: (formData: FormData) => void | Promise<void>;
 }) {
+  const options = useMemo(() => flattenOptions(products), [products]);
   const [items, setItems] = useState<LineItem[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState("");
+  const [selectedVariantId, setSelectedVariantId] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
 
-  const productMap = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+  const optionMap = useMemo(() => new Map(options.map((o) => [o.variantId, o])), [options]);
 
   function addItem() {
-    if (!selectedProductId) return;
+    if (!selectedVariantId) return;
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === selectedProductId);
+      const existing = prev.find((i) => i.variantId === selectedVariantId);
       if (existing) {
         return prev.map((i) =>
-          i.productId === selectedProductId ? { ...i, quantity: i.quantity + 1 } : i
+          i.variantId === selectedVariantId ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      return [...prev, { productId: selectedProductId, quantity: 1 }];
+      return [...prev, { variantId: selectedVariantId, quantity: 1 }];
     });
-    setSelectedProductId("");
+    setSelectedVariantId("");
   }
 
-  function updateQuantity(productId: string, quantity: number) {
+  function updateQuantity(variantId: string, quantity: number) {
     setItems((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, quantity: Math.max(1, quantity) } : i))
+      prev.map((i) => (i.variantId === variantId ? { ...i, quantity: Math.max(1, quantity) } : i))
     );
   }
 
-  function removeItem(productId: string) {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  function removeItem(variantId: string) {
+    setItems((prev) => prev.filter((i) => i.variantId !== variantId));
   }
 
-  const total = items.reduce((sum, i) => {
-    const product = productMap.get(i.productId);
-    return sum + (product ? product.price * i.quantity : 0);
-  }, 0);
+  const total = items.reduce(
+    (sum, i) => sum + (optionMap.get(i.variantId)?.price ?? 0) * i.quantity,
+    0
+  );
 
   return (
     <form action={action} className="flex max-w-2xl flex-col gap-4">
       <input type="hidden" name="items_json" value={JSON.stringify(items)} />
+      <input type="hidden" name="payment_method" value={paymentMethod} />
 
       <div className="flex gap-2">
         <select
-          value={selectedProductId}
-          onChange={(e) => setSelectedProductId(e.target.value)}
+          value={selectedVariantId}
+          onChange={(e) => setSelectedVariantId(e.target.value)}
           className="flex-1 rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
         >
           <option value="">Chọn sản phẩm...</option>
-          {products.map((p) => (
-            <option key={p.id} value={p.id} disabled={p.stock <= 0}>
-              {p.name} — {formatVND(p.price)} (còn {p.stock})
+          {options.map((o) => (
+            <option key={o.variantId} value={o.variantId} disabled={o.stock <= 0}>
+              {o.label} — {formatVND(o.price)} (còn {o.stock})
             </option>
           ))}
         </select>
@@ -93,25 +119,25 @@ export default function InStoreSaleForm({
       <div className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3">
         {items.length === 0 && <p className="text-sm text-gray-400">Chưa chọn sản phẩm nào.</p>}
         {items.map((item) => {
-          const product = productMap.get(item.productId);
-          if (!product) return null;
+          const option = optionMap.get(item.variantId);
+          if (!option) return null;
           return (
-            <div key={item.productId} className="flex items-center gap-3 text-sm">
-              <span className="flex-1">{product.name}</span>
+            <div key={item.variantId} className="flex items-center gap-3 text-sm">
+              <span className="flex-1">{option.label}</span>
               <input
                 type="number"
                 min={1}
-                max={product.stock}
+                max={option.stock}
                 value={item.quantity}
-                onChange={(e) => updateQuantity(item.productId, Number(e.target.value))}
+                onChange={(e) => updateQuantity(item.variantId, Number(e.target.value))}
                 className="w-16 rounded-md border border-gray-300 px-2 py-1 text-center"
               />
               <span className="w-24 text-right font-medium">
-                {formatVND(product.price * item.quantity)}
+                {formatVND(option.price * item.quantity)}
               </span>
               <button
                 type="button"
-                onClick={() => removeItem(item.productId)}
+                onClick={() => removeItem(item.variantId)}
                 className="text-red-500 hover:text-red-700"
               >
                 Xóa
@@ -146,6 +172,32 @@ export default function InStoreSaleForm({
             className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Hình thức thanh toán</label>
+        <div className="flex flex-wrap gap-2">
+          {(Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((method) => (
+            <button
+              key={method}
+              type="button"
+              onClick={() => setPaymentMethod(method)}
+              className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+                paymentMethod === method
+                  ? "border-brand-600 bg-brand-600 text-white"
+                  : "border-gray-300 text-gray-700 hover:border-brand-600"
+              }`}
+            >
+              {PAYMENT_METHOD_LABEL[method]}
+            </button>
+          ))}
+        </div>
+        {paymentMethod === "credit" && (
+          <p className="mt-1 text-xs text-amber-600">
+            Đơn sẽ ghi nhận là khách nợ (chưa thanh toán) — nên nhập tên và số điện thoại khách để
+            theo dõi công nợ.
+          </p>
+        )}
       </div>
 
       <SubmitButton />

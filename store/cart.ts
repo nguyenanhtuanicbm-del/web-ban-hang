@@ -5,8 +5,10 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface CartItem {
-  productId: string;
-  name: string;
+  variantId: string;
+  productName: string;
+  /** Mô tả thuộc tính biến thể, ví dụ "Size: M, Màu: Đỏ" — rỗng nếu sản phẩm không có biến thể. */
+  variantLabel: string;
   slug: string;
   price: number;
   image: string | null;
@@ -17,8 +19,8 @@ export interface CartItem {
 interface CartState {
   items: CartItem[];
   addItem: (item: CartItem) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeItem: (variantId: string) => void;
+  updateQuantity: (variantId: string, quantity: number) => void;
   clear: () => void;
 }
 
@@ -28,11 +30,11 @@ export const useCartStore = create<CartState>()(
       items: [],
       addItem: (item) => {
         const items = get().items;
-        const existing = items.find((i) => i.productId === item.productId);
+        const existing = items.find((i) => i.variantId === item.variantId);
         if (existing) {
           set({
             items: items.map((i) =>
-              i.productId === item.productId
+              i.variantId === item.variantId
                 ? { ...i, quantity: Math.min(i.quantity + item.quantity, i.stock) }
                 : i
             ),
@@ -41,12 +43,12 @@ export const useCartStore = create<CartState>()(
           set({ items: [...items, item] });
         }
       },
-      removeItem: (productId) =>
-        set({ items: get().items.filter((i) => i.productId !== productId) }),
-      updateQuantity: (productId, quantity) =>
+      removeItem: (variantId) =>
+        set({ items: get().items.filter((i) => i.variantId !== variantId) }),
+      updateQuantity: (variantId, quantity) =>
         set({
           items: get().items.map((i) =>
-            i.productId === productId
+            i.variantId === variantId
               ? { ...i, quantity: Math.max(1, Math.min(quantity, i.stock)) }
               : i
           ),

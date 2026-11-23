@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductBySlug } from "@/lib/queries";
-import { formatVND } from "@/lib/format";
 import ProductGallery from "@/components/ProductGallery";
-import AddToCartButton from "@/components/AddToCartButton";
+import ProductPurchasePanel from "@/components/ProductPurchasePanel";
 
 export const revalidate = 0;
 
@@ -46,24 +45,11 @@ export default async function ProductDetailPage({
             <h1 className="mt-1 text-2xl font-bold text-gray-900">{product.name}</h1>
           </div>
 
-          <div className="flex items-baseline gap-3">
-            <span className="text-2xl font-bold text-brand-600">{formatVND(product.price)}</span>
-            {product.compare_at_price && product.compare_at_price > product.price && (
-              <span className="text-gray-400 line-through">
-                {formatVND(product.compare_at_price)}
-              </span>
-            )}
-          </div>
-
-          <p className="text-sm text-gray-500">
-            {product.stock > 0 ? `Còn ${product.stock} sản phẩm` : "Hiện đã hết hàng"}
-          </p>
+          <ProductPurchasePanel product={product} />
 
           {product.description && (
             <p className="whitespace-pre-line text-gray-700">{product.description}</p>
           )}
-
-          <AddToCartButton product={product} />
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { Category, Product } from "@/lib/types";
 import ProductImage from "@/components/ProductImage";
+import VariantEditor from "@/components/admin/VariantEditor";
 
 export default function ProductForm({
   categories,
@@ -11,7 +12,7 @@ export default function ProductForm({
   action: (formData: FormData) => void | Promise<void>;
 }) {
   return (
-    <form action={action} className="flex max-w-2xl flex-col gap-4">
+    <form action={action} className="flex max-w-4xl flex-col gap-4">
       {product && <input type="hidden" name="id" value={product.id} />}
 
       <div>
@@ -20,7 +21,7 @@ export default function ProductForm({
           name="name"
           required
           defaultValue={product?.name}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+          className="w-full max-w-2xl rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
         />
       </div>
 
@@ -30,7 +31,7 @@ export default function ProductForm({
           name="slug"
           defaultValue={product?.slug}
           placeholder="Để trống để tự tạo từ tên sản phẩm"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+          className="w-full max-w-2xl rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
         />
       </div>
 
@@ -39,7 +40,7 @@ export default function ProductForm({
         <select
           name="category_id"
           defaultValue={product?.category_id ?? ""}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+          className="w-full max-w-2xl rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
         >
           <option value="">Không có danh mục</option>
           {categories.map((c) => (
@@ -50,51 +51,13 @@ export default function ProductForm({
         </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Giá bán *</label>
-          <input
-            name="price"
-            type="number"
-            min={0}
-            required
-            defaultValue={product?.price}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            Giá gốc (hiện gạch ngang)
-          </label>
-          <input
-            name="compare_at_price"
-            type="number"
-            min={0}
-            defaultValue={product?.compare_at_price ?? ""}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Tồn kho *</label>
-        <input
-          name="stock"
-          type="number"
-          min={0}
-          required
-          defaultValue={product?.stock ?? 0}
-          className="w-full max-w-[160px] rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
-        />
-      </div>
-
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Mô tả</label>
         <textarea
           name="description"
           rows={4}
           defaultValue={product?.description ?? ""}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+          className="w-full max-w-2xl rounded-md border border-gray-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
         />
       </div>
 
@@ -122,7 +85,7 @@ export default function ProductForm({
           type="file"
           accept="image/*"
           multiple
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          className="w-full max-w-2xl rounded-md border border-gray-300 px-3 py-2 text-sm"
         />
       </div>
 
@@ -130,6 +93,11 @@ export default function ProductForm({
         <input type="checkbox" name="is_active" defaultChecked={product?.is_active ?? true} />
         Hiển thị sản phẩm trên cửa hàng
       </label>
+
+      <div className="border-t border-gray-200 pt-4">
+        <h2 className="mb-3 font-semibold text-gray-900">Biến thể &amp; giá bán</h2>
+        <VariantEditor initialVariants={product?.variants ?? []} />
+      </div>
 
       <button
         type="submit"

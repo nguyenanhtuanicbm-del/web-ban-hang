@@ -46,7 +46,7 @@ export default function CheckoutPage() {
           phone: form.phone,
           address: form.address,
           note: form.note,
-          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
         }),
       });
 
@@ -131,9 +131,10 @@ export default function CheckoutPage() {
         <h2 className="mb-4 text-lg font-semibold text-gray-900">Đơn hàng của bạn</h2>
         <div className="flex flex-col gap-3 rounded-lg border border-gray-200 p-4">
           {items.map((item) => (
-            <div key={item.productId} className="flex justify-between text-sm">
+            <div key={item.variantId} className="flex justify-between text-sm">
               <span className="text-gray-700">
-                {item.name} x{item.quantity}
+                {item.productName}
+                {item.variantLabel ? ` (${item.variantLabel})` : ""} x{item.quantity}
               </span>
               <span className="font-medium text-gray-900">
                 {formatVND(item.price * item.quantity)}

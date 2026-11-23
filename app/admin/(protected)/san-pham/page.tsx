@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getAllProductsForAdmin, productMinPrice, productTotalStock } from "@/lib/queries";
 import { formatVND } from "@/lib/format";
 import ProductImage from "@/components/ProductImage";
 import { deleteProduct } from "./actions";
@@ -8,11 +8,7 @@ import { deleteProduct } from "./actions";
 export const revalidate = 0;
 
 export default async function AdminProductsPage() {
-  const supabase = await createClient();
-  const { data: products } = await supabase
-    .from("products")
-    .select("*, category:categories(*)")
-    .order("created_at", { ascending: false });
+  const products = await getAllProductsForAdmin();
 
   return (
     <div className="flex flex-col gap-6">
@@ -34,6 +30,7 @@ export default async function AdminProductsPage() {
               <th className="px-4 py-2"></th>
               <th className="px-4 py-2">Tên sản phẩm</th>
               <th className="px-4 py-2">Danh mục</th>
+              <th className="px-4 py-2">Biến thể</th>
               <th className="px-4 py-2 text-right">Giá</th>
               <th className="px-4 py-2 text-right">Tồn kho</th>
               <th className="px-4 py-2">Trạng thái</th>
@@ -41,7 +38,7 @@ export default async function AdminProductsPage() {
             </tr>
           </thead>
           <tbody>
-            {(products ?? []).map((product) => (
+            {products.map((product) => (
               <tr key={product.id} className="border-t border-gray-100">
                 <td className="px-4 py-2">
                   <ProductImage
@@ -52,8 +49,12 @@ export default async function AdminProductsPage() {
                 </td>
                 <td className="px-4 py-2 font-medium text-gray-900">{product.name}</td>
                 <td className="px-4 py-2 text-gray-500">{product.category?.name ?? "—"}</td>
-                <td className="px-4 py-2 text-right">{formatVND(product.price)}</td>
-                <td className="px-4 py-2 text-right">{product.stock}</td>
+                <td className="px-4 py-2 text-gray-500">{product.variants?.length ?? 0}</td>
+                <td className="px-4 py-2 text-right">
+                  {(product.variants?.length ?? 0) > 1 ? "Từ " : ""}
+                  {formatVND(productMinPrice(product))}
+                </td>
+                <td className="px-4 py-2 text-right">{productTotalStock(product)}</td>
                 <td className="px-4 py-2">
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -82,9 +83,9 @@ export default async function AdminProductsPage() {
                 </td>
               </tr>
             ))}
-            {(products ?? []).length === 0 && (
+            {products.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-6 text-center text-gray-400">
                   Chưa có sản phẩm nào.
                 </td>
               </tr>

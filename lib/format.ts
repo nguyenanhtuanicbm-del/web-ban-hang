@@ -18,11 +18,15 @@ export function slugify(text: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function generateOrderCode(): string {
+export function generateCode(prefix: string = "DH"): string {
   const now = new Date();
   const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
     now.getDate()
   ).padStart(2, "0")}`;
   const randomPart = Math.random().toString(36).slice(2, 7).toUpperCase();
-  return `DH${datePart}${randomPart}`;
+  return `${prefix}${datePart}${randomPart}`;
+}
+
+export function generateOrderCode(): string {
+  return generateCode("DH");
 }

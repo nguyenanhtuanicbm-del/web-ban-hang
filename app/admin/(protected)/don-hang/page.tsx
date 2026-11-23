@@ -60,7 +60,14 @@ export default async function AdminOrdersPage() {
                     {ORDER_STATUS_LABEL[order.status]}
                   </span>
                 </td>
-                <td className="px-4 py-2 text-right">{formatVND(order.total)}</td>
+                <td className="px-4 py-2 text-right">
+                  {formatVND(order.total)}
+                  {order.paid_amount < order.total && (
+                    <div className="text-xs font-medium text-amber-600">
+                      Nợ {formatVND(order.total - order.paid_amount)}
+                    </div>
+                  )}
+                </td>
                 <td className="px-4 py-2 text-gray-500">
                   {new Date(order.created_at).toLocaleString("vi-VN")}
                 </td>
