@@ -11,3 +11,14 @@
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+
+/* Khổ giấy máy in hóa đơn nhiệt 80mm — chỉ áp dụng khi in (xem OrderReceipt.tsx). */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+}
