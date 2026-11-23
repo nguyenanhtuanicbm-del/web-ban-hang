@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { generateOrderCode } from "@/lib/format";
+import { setFlash } from "@/lib/flash";
 import {
   applyStockChange,
   findOrCreateCustomer,
@@ -25,9 +26,13 @@ export async function createInStoreOrder(formData: FormData) {
   try {
     items = JSON.parse(itemsJson);
   } catch {
+    await setFlash("error", "Dữ liệu sản phẩm không hợp lệ.");
     return;
   }
-  if (!Array.isArray(items) || items.length === 0) return;
+  if (!Array.isArray(items) || items.length === 0) {
+    await setFlash("error", "Vui lòng chọn ít nhất 1 sản phẩm.");
+    return;
+  }
 
   const customerName = String(formData.get("customer_name") || "").trim() || "Khách lẻ";
   const phone = String(formData.get("phone") || "").trim();
@@ -40,7 +45,10 @@ export async function createInStoreOrder(formData: FormData) {
     getDefaultPriceListId(supabase),
     supabase.auth.getUser(),
   ]);
-  if (!defaultWarehouseId || !defaultPriceListId) return;
+  if (!defaultWarehouseId || !defaultPriceListId) {
+    await setFlash("error", "Cửa hàng chưa thiết lập kho/bảng giá mặc định.");
+    return;
+  }
   const createdBy = userResult.data.user?.id ?? null;
 
   const variantIds = [...new Set(items.map((i) => i.variantId))];
@@ -61,13 +69,17 @@ export async function createInStoreOrder(formData: FormData) {
       .eq("warehouse_id", defaultWarehouseId)
       .in("variant_id", variantIds),
   ]);
-  if (!variants) return;
+  if (!variants) {
+    await setFlash("error", "Không thể xác thực sản phẩm.");
+    return;
+  }
 
   const variantMap = new Map((variants as unknown as VariantRow[]).map((v) => [v.id, v]));
   const priceMap = new Map((priceItems ?? []).map((p) => [p.variant_id, p.price]));
   const stockMap = new Map((stockRows ?? []).map((s) => [s.variant_id, s.quantity]));
 
   let total = 0;
+  let skipped = 0;
   const orderItemsToInsert: {
     variant_id: string;
     product_name: string;
@@ -81,7 +93,10 @@ export async function createInStoreOrder(formData: FormData) {
     const price = priceMap.get(item.variantId);
     const stock = stockMap.get(item.variantId) ?? 0;
 
-    if (!variant || !variant.is_active || price === undefined || stock < quantity) continue;
+    if (!variant || !variant.is_active || price === undefined || stock < quantity) {
+      skipped += 1;
+      continue;
+    }
 
     total += price * quantity;
     orderItemsToInsert.push({
@@ -92,7 +107,10 @@ export async function createInStoreOrder(formData: FormData) {
     });
   }
 
-  if (orderItemsToInsert.length === 0) return;
+  if (orderItemsToInsert.length === 0) {
+    await setFlash("error", "Không có sản phẩm nào đủ điều kiện để bán (hết hàng hoặc không hợp lệ).");
+    return;
+  }
 
   const customerId = await findOrCreateCustomer(supabase, { name: customerName, phone });
   const paidAmount = paymentMethod === "credit" ? 0 : total;
@@ -114,7 +132,10 @@ export async function createInStoreOrder(formData: FormData) {
     .select()
     .single();
 
-  if (error || !order) return;
+  if (error || !order) {
+    await setFlash("error", "Không thể tạo đơn hàng, vui lòng thử lại.");
+    return;
+  }
 
   await supabase
     .from("order_items")
@@ -134,5 +155,14 @@ export async function createInStoreOrder(formData: FormData) {
 
   revalidatePath("/admin/don-hang");
   revalidatePath("/admin/san-pham");
+
+  if (skipped > 0) {
+    await setFlash(
+      "success",
+      `Đã tạo đơn ${order.code}, nhưng ${skipped} sản phẩm bị bỏ qua do hết hàng/không hợp lệ.`
+    );
+  } else {
+    await setFlash("success", `Đã tạo đơn ${order.code}.`);
+  }
   redirect(`/admin/don-hang/${order.id}`);
 }

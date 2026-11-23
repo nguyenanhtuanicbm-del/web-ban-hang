@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { generateCode } from "@/lib/format";
 import { applyStockChange } from "@/lib/stock";
+import { setFlash } from "@/lib/flash";
 
 interface PoItemInput {
   variantId: string;
@@ -24,11 +25,19 @@ export async function createPurchaseOrder(formData: FormData) {
   try {
     items = JSON.parse(String(formData.get("items_json") || "[]"));
   } catch {
+    await setFlash("error", "Dữ liệu sản phẩm không hợp lệ.");
     return;
   }
   items = items.filter((i) => i.variantId && i.quantity > 0 && i.unitCost >= 0);
 
-  if (!warehouseId || items.length === 0) return;
+  if (!warehouseId) {
+    await setFlash("error", "Vui lòng chọn kho nhập.");
+    return;
+  }
+  if (items.length === 0) {
+    await setFlash("error", "Vui lòng thêm ít nhất 1 sản phẩm vào phiếu nhập.");
+    return;
+  }
 
   const supabase = await createClient();
   const { data: userResult } = await supabase.auth.getUser();
@@ -51,7 +60,10 @@ export async function createPurchaseOrder(formData: FormData) {
     .select()
     .single();
 
-  if (error || !po) return;
+  if (error || !po) {
+    await setFlash("error", "Không thể tạo phiếu nhập, vui lòng thử lại.");
+    return;
+  }
 
   await supabase.from("purchase_order_items").insert(
     items.map((i) => ({
@@ -65,23 +77,33 @@ export async function createPurchaseOrder(formData: FormData) {
   );
 
   revalidatePath("/admin/kho/phieu-nhap");
+  await setFlash("success", `Đã tạo phiếu nhập ${po.code}.`);
   redirect(`/admin/kho/phieu-nhap/${po.id}`);
 }
 
 export async function receivePurchaseOrder(formData: FormData) {
   const id = String(formData.get("id") || "");
-  if (!id) return;
+  if (!id) {
+    await setFlash("error", "Thiếu mã phiếu nhập.");
+    return;
+  }
 
   const supabase = await createClient();
 
   const { data: po } = await supabase.from("purchase_orders").select("*").eq("id", id).single();
-  if (!po || po.status !== "draft") return;
+  if (!po || po.status !== "draft") {
+    await setFlash("error", "Phiếu nhập không ở trạng thái nháp, không thể nhận hàng.");
+    return;
+  }
 
   const { data: items } = await supabase
     .from("purchase_order_items")
     .select("*")
     .eq("purchase_order_id", id);
-  if (!items || items.length === 0) return;
+  if (!items || items.length === 0) {
+    await setFlash("error", "Phiếu nhập không có sản phẩm nào.");
+    return;
+  }
 
   const { data: userResult } = await supabase.auth.getUser();
   const createdBy = userResult.user?.id ?? null;
@@ -146,14 +168,29 @@ export async function receivePurchaseOrder(formData: FormData) {
   revalidatePath("/admin/kho/phieu-nhap");
   revalidatePath(`/admin/kho/phieu-nhap/${id}`);
   revalidatePath("/admin/san-pham");
+  await setFlash("success", `Đã nhận hàng cho phiếu ${po.code}, tồn kho và giá vốn đã cập nhật.`);
 }
 
 export async function cancelPurchaseOrder(formData: FormData) {
   const id = String(formData.get("id") || "");
-  if (!id) return;
+  if (!id) {
+    await setFlash("error", "Thiếu mã phiếu nhập.");
+    return;
+  }
 
   const supabase = await createClient();
-  await supabase.from("purchase_orders").update({ status: "cancelled" }).eq("id", id).eq("status", "draft");
+  const { error } = await supabase
+    .from("purchase_orders")
+    .update({ status: "cancelled" })
+    .eq("id", id)
+    .eq("status", "draft");
+
+  if (error) {
+    await setFlash("error", "Không thể hủy phiếu nhập.");
+    return;
+  }
+
   revalidatePath("/admin/kho/phieu-nhap");
   revalidatePath(`/admin/kho/phieu-nhap/${id}`);
+  await setFlash("success", "Đã hủy phiếu nhập.");
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { setFlash } from "@/lib/flash";
 
 function parseFields(formData: FormData) {
   return {
@@ -14,28 +15,58 @@ function parseFields(formData: FormData) {
 
 export async function createCustomer(formData: FormData) {
   const fields = parseFields(formData);
-  if (!fields.name) return;
+  if (!fields.name) {
+    await setFlash("error", "Vui lòng nhập tên khách hàng.");
+    return;
+  }
 
   const supabase = await createClient();
-  await supabase.from("customers").insert(fields);
+  const { error } = await supabase.from("customers").insert(fields);
+
+  if (error) {
+    await setFlash("error", "Không thể thêm khách hàng.");
+    return;
+  }
+
   revalidatePath("/admin/khach-hang");
+  await setFlash("success", `Đã thêm khách hàng "${fields.name}".`);
 }
 
 export async function updateCustomer(formData: FormData) {
   const id = String(formData.get("id") || "");
   const fields = parseFields(formData);
-  if (!id || !fields.name) return;
+  if (!id || !fields.name) {
+    await setFlash("error", "Vui lòng nhập tên khách hàng.");
+    return;
+  }
 
   const supabase = await createClient();
-  await supabase.from("customers").update(fields).eq("id", id);
+  const { error } = await supabase.from("customers").update(fields).eq("id", id);
+
+  if (error) {
+    await setFlash("error", "Không thể lưu thông tin khách hàng.");
+    return;
+  }
+
   revalidatePath("/admin/khach-hang");
+  await setFlash("success", `Đã lưu thông tin khách hàng "${fields.name}".`);
 }
 
 export async function deleteCustomer(formData: FormData) {
   const id = String(formData.get("id") || "");
-  if (!id) return;
+  if (!id) {
+    await setFlash("error", "Thiếu mã khách hàng.");
+    return;
+  }
 
   const supabase = await createClient();
-  await supabase.from("customers").delete().eq("id", id);
+  const { error } = await supabase.from("customers").delete().eq("id", id);
+
+  if (error) {
+    await setFlash("error", "Không thể xóa khách hàng.");
+    return;
+  }
+
   revalidatePath("/admin/khach-hang");
+  await setFlash("success", "Đã xóa khách hàng.");
 }

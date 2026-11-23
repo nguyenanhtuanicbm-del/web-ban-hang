@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { setFlash } from "@/lib/flash";
 
 export interface LoginState {
   error?: string;
@@ -22,5 +23,6 @@ export async function signIn(_prevState: LoginState, formData: FormData): Promis
     return { error: "Email hoặc mật khẩu không đúng." };
   }
 
+  await setFlash("success", "Đăng nhập thành công.");
   redirect("/admin");
 }

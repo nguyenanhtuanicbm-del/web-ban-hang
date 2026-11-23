@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { useCartStore, useCartHydrated, cartTotal } from "@/store/cart";
 import { formatVND } from "@/lib/format";
 
@@ -53,15 +54,20 @@ export default function CheckoutPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Có lỗi xảy ra, vui lòng thử lại.");
+        const message = data.error || "Có lỗi xảy ra, vui lòng thử lại.";
+        setError(message);
+        toast.error(message);
         setSubmitting(false);
         return;
       }
 
       clear();
+      toast.success(`Đặt hàng thành công! Mã đơn: ${data.code}`);
       router.push(`/don-hang-thanh-cong/${data.code}`);
     } catch {
-      setError("Không thể kết nối tới server, vui lòng thử lại.");
+      const message = "Không thể kết nối tới server, vui lòng thử lại.";
+      setError(message);
+      toast.error(message);
       setSubmitting(false);
     }
   }

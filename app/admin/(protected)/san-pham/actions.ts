@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/format";
 import { applyStockChange, getDefaultPriceListId, getDefaultWarehouseId } from "@/lib/stock";
+import { setFlash } from "@/lib/flash";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -74,10 +75,16 @@ async function uploadImages(
 
 export async function createProduct(formData: FormData) {
   const fields = parseProductFields(formData);
-  if (!fields.name) return;
+  if (!fields.name) {
+    await setFlash("error", "Vui lòng nhập tên sản phẩm.");
+    return;
+  }
 
   const variantRows = parseVariantRows(formData);
-  if (variantRows.length === 0) return;
+  if (variantRows.length === 0) {
+    await setFlash("error", "Cần ít nhất 1 biến thể có SKU và giá bán.");
+    return;
+  }
 
   const supabase = await createClient();
 
@@ -87,7 +94,10 @@ export async function createProduct(formData: FormData) {
     .select()
     .single();
 
-  if (error || !product) return;
+  if (error || !product) {
+    await setFlash("error", "Không thể tạo sản phẩm, vui lòng thử lại.");
+    return;
+  }
 
   const files = formData.getAll("images").filter((f): f is File => f instanceof File);
   const urls = await uploadImages(supabase, product.id, files);
@@ -144,18 +154,31 @@ export async function createProduct(formData: FormData) {
   revalidatePath("/admin/san-pham");
   revalidatePath("/");
   revalidatePath(`/san-pham/${product.slug}`);
+  await setFlash("success", `Đã tạo sản phẩm "${fields.name}".`);
   redirect("/admin/san-pham");
 }
 
 export async function updateProduct(formData: FormData) {
   const id = String(formData.get("id") || "");
-  if (!id) return;
+  if (!id) {
+    await setFlash("error", "Thiếu mã sản phẩm.");
+    return;
+  }
 
   const fields = parseProductFields(formData);
+  if (!fields.name) {
+    await setFlash("error", "Vui lòng nhập tên sản phẩm.");
+    return;
+  }
+
   const variantRows = parseVariantRows(formData);
   const supabase = await createClient();
 
-  await supabase.from("products").update(fields).eq("id", id);
+  const { error: updateError } = await supabase.from("products").update(fields).eq("id", id);
+  if (updateError) {
+    await setFlash("error", "Không thể lưu thay đổi sản phẩm.");
+    return;
+  }
 
   const { data: existing } = await supabase.from("products").select("images").eq("id", id).single();
   const keepUrls = formData.getAll("keep_image").map(String);
@@ -241,18 +264,28 @@ export async function updateProduct(formData: FormData) {
   revalidatePath("/admin/san-pham");
   revalidatePath("/");
   revalidatePath(`/san-pham/${fields.slug}`);
+  await setFlash("success", `Đã lưu thay đổi sản phẩm "${fields.name}".`);
   redirect("/admin/san-pham");
 }
 
 export async function deleteProduct(formData: FormData) {
   const id = String(formData.get("id") || "");
-  if (!id) return;
+  if (!id) {
+    await setFlash("error", "Thiếu mã sản phẩm.");
+    return;
+  }
 
   const supabase = await createClient();
-  const { data: product } = await supabase.from("products").select("slug").eq("id", id).maybeSingle();
-  await supabase.from("products").delete().eq("id", id);
+  const { data: product } = await supabase.from("products").select("slug, name").eq("id", id).maybeSingle();
+  const { error } = await supabase.from("products").delete().eq("id", id);
+
+  if (error) {
+    await setFlash("error", "Không thể xóa sản phẩm, vui lòng thử lại.");
+    return;
+  }
 
   revalidatePath("/admin/san-pham");
   revalidatePath("/");
   if (product?.slug) revalidatePath(`/san-pham/${product.slug}`);
+  await setFlash("success", product?.name ? `Đã xóa sản phẩm "${product.name}".` : "Đã xóa sản phẩm.");
 }
