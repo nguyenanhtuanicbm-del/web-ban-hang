@@ -97,7 +97,50 @@ export default async function StockLedgerPage({
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      {/* Điện thoại: dạng thẻ — bảng 7 cột không cuộn ngang được hợp lý trên màn hình nhỏ */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {entries.map((e) => {
+          const attrLabel = e.variant ? formatVariantAttributes(e.variant.attributes) : "";
+          return (
+            <div key={e.id} className="rounded-lg border border-gray-200 bg-white p-3 text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {e.variant?.product?.name}
+                    {attrLabel ? ` (${attrLabel})` : ""}
+                  </p>
+                  <p className="text-xs text-gray-400">{e.variant?.sku}</p>
+                </div>
+                <span
+                  className={`flex-shrink-0 font-medium ${
+                    e.quantity_change > 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {e.quantity_change > 0 ? `+${e.quantity_change}` : e.quantity_change}
+                </span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                <span>
+                  {CHANGE_TYPE_LABEL[e.change_type]} · {e.warehouse?.name ?? "—"}
+                </span>
+                <span>Tồn sau: {e.balance_after}</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">
+                {new Date(e.created_at).toLocaleString("vi-VN")}
+              </p>
+              {e.note && <p className="mt-1 text-xs text-gray-500">{e.note}</p>}
+            </div>
+          );
+        })}
+        {entries.length === 0 && (
+          <p className="rounded-lg border border-dashed border-gray-300 py-6 text-center text-gray-400">
+            Chưa có biến động tồn kho nào.
+          </p>
+        )}
+      </div>
+
+      {/* Máy tính/tablet: bảng đầy đủ */}
+      <div className="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500">

@@ -17,6 +17,7 @@ export default async function CustomersPage({
     query = query.or(`name.ilike.%${q}%,phone.ilike.%${q}%`);
   }
   const { data: customers } = await query;
+  const rows = customers ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -70,7 +71,72 @@ export default async function CustomersPage({
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      {/* Điện thoại: dạng thẻ */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {rows.map((c) => (
+          <div key={c.id} className="rounded-lg border border-gray-200 bg-white p-3">
+            <form action={updateCustomer} className="flex flex-col gap-2">
+              <input type="hidden" name="id" value={c.id} />
+              <div>
+                <label className="text-xs text-gray-400">Tên</label>
+                <input
+                  name="name"
+                  defaultValue={c.name}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400">Điện thoại</label>
+                <input
+                  name="phone"
+                  defaultValue={c.phone ?? ""}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400">Địa chỉ</label>
+                <input
+                  name="address"
+                  defaultValue={c.address ?? ""}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400">Ghi chú</label>
+                <input
+                  name="note"
+                  defaultValue={c.note ?? ""}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-fit text-xs font-medium text-brand-600 hover:underline"
+              >
+                Lưu
+              </button>
+            </form>
+            <form action={deleteCustomer} className="mt-2 flex justify-end border-t border-gray-100 pt-2">
+              <input type="hidden" name="id" value={c.id} />
+              <button
+                type="submit"
+                className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+                Xóa khách hàng
+              </button>
+            </form>
+          </div>
+        ))}
+        {rows.length === 0 && (
+          <p className="rounded-lg border border-dashed border-gray-300 py-6 text-center text-gray-400">
+            Chưa có khách hàng nào.
+          </p>
+        )}
+      </div>
+
+      {/* Máy tính/tablet: bảng đầy đủ */}
+      <div className="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500">
@@ -82,7 +148,7 @@ export default async function CustomersPage({
             </tr>
           </thead>
           <tbody>
-            {(customers ?? []).map((c) => (
+            {rows.map((c) => (
               <tr key={c.id} className="border-t border-gray-100">
                 <td className="p-0" colSpan={4}>
                   <form action={updateCustomer} className="grid grid-cols-4 items-center gap-2 px-4 py-2">
@@ -124,7 +190,7 @@ export default async function CustomersPage({
                 </td>
               </tr>
             ))}
-            {(customers ?? []).length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-gray-400">
                   Chưa có khách hàng nào.

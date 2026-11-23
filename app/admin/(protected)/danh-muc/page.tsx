@@ -8,6 +8,8 @@ export default async function CategoriesPage() {
   const supabase = await createClient();
   const { data: categories } = await supabase.from("categories").select("*").order("name");
 
+  const rows = categories ?? [];
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold text-gray-900">Danh mục</h1>
@@ -27,7 +29,41 @@ export default async function CategoriesPage() {
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+      {/* Điện thoại: dạng thẻ */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {rows.map((category) => (
+          <div key={category.id} className="rounded-lg border border-gray-200 bg-white p-3">
+            <form action={updateCategory} className="flex items-center gap-2">
+              <input type="hidden" name="id" value={category.id} />
+              <input
+                name="name"
+                defaultValue={category.name}
+                className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none"
+              />
+              <button type="submit" className="text-xs font-medium text-brand-600 hover:underline">
+                Lưu
+              </button>
+            </form>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-xs text-gray-400">/{category.slug}</span>
+              <form action={deleteCategory}>
+                <input type="hidden" name="id" value={category.id} />
+                <button type="submit" className="text-red-500 hover:text-red-700" aria-label="Xóa">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </form>
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 && (
+          <p className="rounded-lg border border-dashed border-gray-300 py-6 text-center text-gray-400">
+            Chưa có danh mục nào.
+          </p>
+        )}
+      </div>
+
+      {/* Máy tính/tablet: bảng đầy đủ */}
+      <div className="hidden overflow-hidden rounded-lg border border-gray-200 bg-white sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500">
@@ -37,7 +73,7 @@ export default async function CategoriesPage() {
             </tr>
           </thead>
           <tbody>
-            {(categories ?? []).map((category) => (
+            {rows.map((category) => (
               <tr key={category.id} className="border-t border-gray-100">
                 <td className="px-4 py-2">
                   <form action={updateCategory} className="flex items-center gap-2">
@@ -63,7 +99,7 @@ export default async function CategoriesPage() {
                 </td>
               </tr>
             ))}
-            {(categories ?? []).length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
                   Chưa có danh mục nào.

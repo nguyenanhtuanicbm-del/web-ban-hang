@@ -16,9 +16,11 @@ export default async function StockCountsPage() {
     .select("*, warehouse:warehouses(name)")
     .order("created_at", { ascending: false });
 
+  const rows = counts ?? [];
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-gray-900">Kiểm kho</h1>
         <Link
           href="/admin/kho/kiem-ke/moi"
@@ -29,7 +31,39 @@ export default async function StockCountsPage() {
         </Link>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      {/* Điện thoại: dạng thẻ */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {rows.map((c) => (
+          <Link
+            key={c.id}
+            href={`/admin/kho/kiem-ke/${c.id}`}
+            className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3"
+          >
+            <div>
+              <p className="font-medium text-brand-600">{c.code}</p>
+              <p className="text-sm text-gray-700">{c.warehouse?.name ?? "—"}</p>
+              <p className="text-xs text-gray-400">
+                {new Date(c.created_at).toLocaleDateString("vi-VN")}
+              </p>
+            </div>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                c.status === "completed" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+              }`}
+            >
+              {STATUS_LABEL[c.status]}
+            </span>
+          </Link>
+        ))}
+        {rows.length === 0 && (
+          <p className="rounded-lg border border-dashed border-gray-300 py-6 text-center text-gray-400">
+            Chưa có phiếu kiểm kho nào.
+          </p>
+        )}
+      </div>
+
+      {/* Máy tính/tablet: bảng đầy đủ */}
+      <div className="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500">
@@ -40,7 +74,7 @@ export default async function StockCountsPage() {
             </tr>
           </thead>
           <tbody>
-            {(counts ?? []).map((c) => (
+            {rows.map((c) => (
               <tr key={c.id} className="border-t border-gray-100">
                 <td className="px-4 py-2">
                   <Link
@@ -65,7 +99,7 @@ export default async function StockCountsPage() {
                 </td>
               </tr>
             ))}
-            {(counts ?? []).length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-4 py-6 text-center text-gray-400">
                   Chưa có phiếu kiểm kho nào.

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 export const revalidate = 0;
@@ -11,9 +11,11 @@ export default async function StockTransfersPage() {
     .select("*, from_warehouse:warehouses!stock_transfers_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_transfers_to_warehouse_id_fkey(name)")
     .order("created_at", { ascending: false });
 
+  const rows = transfers ?? [];
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-gray-900">Điều chuyển kho</h1>
         <Link
           href="/admin/kho/dieu-chuyen/moi"
@@ -24,7 +26,43 @@ export default async function StockTransfersPage() {
         </Link>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      {/* Điện thoại: dạng thẻ */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {rows.map((t) => (
+          <Link
+            key={t.id}
+            href={`/admin/kho/dieu-chuyen/${t.id}`}
+            className="block rounded-lg border border-gray-200 bg-white p-3"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-brand-600">{t.code}</span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  t.status === "completed" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+                }`}
+              >
+                {t.status === "completed" ? "Đã hoàn tất" : "Nháp"}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center gap-2 text-sm text-gray-700">
+              <span>{t.from_warehouse?.name ?? "—"}</span>
+              <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
+              <span>{t.to_warehouse?.name ?? "—"}</span>
+            </div>
+            <p className="mt-1 text-xs text-gray-400">
+              {new Date(t.created_at).toLocaleDateString("vi-VN")}
+            </p>
+          </Link>
+        ))}
+        {rows.length === 0 && (
+          <p className="rounded-lg border border-dashed border-gray-300 py-6 text-center text-gray-400">
+            Chưa có phiếu điều chuyển nào.
+          </p>
+        )}
+      </div>
+
+      {/* Máy tính/tablet: bảng đầy đủ */}
+      <div className="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500">
@@ -36,7 +74,7 @@ export default async function StockTransfersPage() {
             </tr>
           </thead>
           <tbody>
-            {(transfers ?? []).map((t) => (
+            {rows.map((t) => (
               <tr key={t.id} className="border-t border-gray-100">
                 <td className="px-4 py-2">
                   <Link
@@ -62,7 +100,7 @@ export default async function StockTransfersPage() {
                 </td>
               </tr>
             ))}
-            {(transfers ?? []).length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-gray-400">
                   Chưa có phiếu điều chuyển nào.
