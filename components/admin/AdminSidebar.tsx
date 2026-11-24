@@ -18,6 +18,8 @@ import {
   ScrollText,
   Wallet,
   PackageX,
+  HandCoins,
+  BarChart3,
   LogOut,
   Menu,
   X,
@@ -31,6 +33,10 @@ const groups = [
       { href: "/admin/ban-tai-cua-hang", label: "Bán tại cửa hàng", icon: Store },
       { href: "/admin/don-hang", label: "Đơn hàng", icon: ClipboardList },
     ],
+  },
+  {
+    title: "Báo cáo",
+    links: [{ href: "/admin/bao-cao", label: "Doanh thu & lợi nhuận", icon: BarChart3 }],
   },
   {
     title: "Sản phẩm",
@@ -54,7 +60,10 @@ const groups = [
   },
   {
     title: "Khách hàng",
-    links: [{ href: "/admin/khach-hang", label: "Danh sách khách hàng", icon: Users }],
+    links: [
+      { href: "/admin/khach-hang", label: "Danh sách khách hàng", icon: Users },
+      { href: "/admin/khach-hang/cong-no", label: "Công nợ", icon: HandCoins },
+    ],
   },
 ];
 

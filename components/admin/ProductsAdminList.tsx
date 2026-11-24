@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Tag, Trash2 } from "lucide-react";
 import type { PriceAdjustMode, Product } from "@/lib/types";
 import { productMinPrice, productTotalStock, productUnit } from "@/lib/product-helpers";
 import { formatVND } from "@/lib/format";
@@ -113,6 +113,13 @@ export default function ProductsAdminList({
           >
             Sửa giá hàng loạt
           </button>
+          <Link
+            href={`/admin/san-pham/in-tem?ids=${[...selected].join(",")}`}
+            className="flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:border-brand-600 hover:text-brand-600"
+          >
+            <Tag className="h-4 w-4" />
+            In tem
+          </Link>
           <button
             type="button"
             onClick={handleBulkDelete}

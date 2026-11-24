@@ -10,8 +10,9 @@ interface ReceiptItem {
 }
 
 /**
- * Khổ giấy 80mm (@page trong globals.css) — chỉ hiển thị khi in (xem `hidden print:block`
- * ở nơi dùng component này), nhờ vậy không ảnh hưởng giao diện xem bình thường.
+ * Khổ giấy 80mm chỉ áp dụng khi in component này — đặt bằng thẻ <style> cục bộ (thay vì
+ * globals.css) để không ảnh hưởng tới các trang in khác (vd in tem sản phẩm cần khổ A4).
+ * Component chỉ hiển thị khi in (xem `hidden print:block` ở nơi dùng component này).
  */
 export default function OrderReceipt({
   storeName,
@@ -35,6 +36,7 @@ export default function OrderReceipt({
 
   return (
     <div id="print-receipt" className="mx-auto w-[72mm] font-mono text-[12px] leading-tight text-black">
+      <style>{`@media print { @page { size: 80mm auto; margin: 0; } }`}</style>
       <p className="text-center text-sm font-bold">{storeName}</p>
       <p className="text-center">Hóa đơn bán hàng</p>
       <div className="my-2 border-t border-dashed border-black" />
