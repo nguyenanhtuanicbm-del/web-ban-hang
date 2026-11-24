@@ -6,6 +6,12 @@
 -- An toàn để chạy lại nhiều lần.
 -- =====================================================================
 
+-- Phải xóa các view phụ thuộc trước khi đổi kiểu cột "quantity", vì Postgres
+-- không cho alter column khi còn view tham chiếu đến nó.
+drop view if exists inventory_value cascade;
+drop view if exists low_stock_variants cascade;
+drop view if exists variant_total_stock cascade;
+
 alter table inventory_stock alter column quantity type numeric(14,3) using quantity::numeric(14,3);
 alter table inventory_stock alter column quantity set default 0;
 
@@ -28,12 +34,12 @@ alter table product_variants alter column low_stock_threshold set default 5;
 
 alter table stock_lots alter column quantity type numeric(14,3) using quantity::numeric(14,3);
 
-create or replace view variant_total_stock with (security_invoker = true) as
+create view variant_total_stock with (security_invoker = true) as
 select variant_id, sum(quantity)::numeric(14,3) as total_quantity
 from inventory_stock
 group by variant_id;
 
-create or replace view low_stock_variants with (security_invoker = true) as
+create view low_stock_variants with (security_invoker = true) as
 select
   v.id as variant_id,
   v.product_id,
@@ -44,7 +50,7 @@ from product_variants v
 left join variant_total_stock s on s.variant_id = v.id
 where v.is_active and coalesce(s.total_quantity, 0) <= v.low_stock_threshold;
 
-create or replace view inventory_value with (security_invoker = true) as
+create view inventory_value with (security_invoker = true) as
 select v.id as variant_id, v.product_id, v.sku, v.attributes, v.cost_price,
   v.low_stock_threshold, v.is_active,
   coalesce(s.total_quantity, 0) as total_quantity,
