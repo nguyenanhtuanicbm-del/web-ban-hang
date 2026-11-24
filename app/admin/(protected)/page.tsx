@@ -25,7 +25,7 @@ export default async function AdminDashboardPage() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const [newOrders, todayOrders, lowStock, recentOrders, stockValue] = await Promise.all([
+  const [newOrders, todayOrders, lowStock, outOfStockCount, recentOrders, stockValue] = await Promise.all([
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "new"),
     supabase
       .from("orders")
@@ -37,6 +37,10 @@ export default async function AdminDashboardPage() {
       .select("*, product:products(name)")
       .order("total_quantity", { ascending: true })
       .limit(10),
+    supabase
+      .from("low_stock_variants")
+      .select("variant_id", { count: "exact", head: true })
+      .eq("total_quantity", 0),
     supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(5),
     supabase.from("inventory_value").select("stock_value"),
   ]);
@@ -66,6 +70,12 @@ export default async function AdminDashboardPage() {
       valueClassName: profitToday >= 0 ? "text-green-600" : "text-red-600",
     },
     { label: "Sắp hết hàng", value: lowStockRows.length },
+    {
+      label: "Đã hết hàng",
+      value: outOfStockCount.count ?? 0,
+      href: "/admin/kho/het-hang",
+      valueClassName: (outOfStockCount.count ?? 0) > 0 ? "text-red-600" : "text-gray-900",
+    },
     {
       label: "Giá trị tồn kho",
       value: formatVND(totalStockValue),

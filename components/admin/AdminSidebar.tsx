@@ -17,6 +17,7 @@ import {
   ArrowLeftRight,
   ScrollText,
   Wallet,
+  PackageX,
   LogOut,
   Menu,
   X,
@@ -48,6 +49,7 @@ const groups = [
       { href: "/admin/kho/dieu-chuyen", label: "Điều chuyển kho", icon: ArrowLeftRight },
       { href: "/admin/kho/the-kho", label: "Thẻ kho", icon: ScrollText },
       { href: "/admin/kho/gia-tri-ton-kho", label: "Giá trị tồn kho", icon: Wallet },
+      { href: "/admin/kho/het-hang", label: "Hết hàng", icon: PackageX },
     ],
   },
   {
