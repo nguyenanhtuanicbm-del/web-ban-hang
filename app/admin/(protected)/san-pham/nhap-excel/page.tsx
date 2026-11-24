@@ -7,7 +7,7 @@ import { Download } from "lucide-react";
 import { importProductsFromExcel, type ImportResult } from "./actions";
 
 const initialState: ImportResult = {};
-const MAX_FILE_MB = 5;
+const MAX_FILE_MB = 3;
 
 function SubmitButton() {
   const { pending } = useFormStatus();

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const MAX_TOTAL_MB = 5;
+const MAX_TOTAL_MB = 3;
 
 export default function ImageFilePicker({ name }: { name: string }) {
   const [warning, setWarning] = useState<string | null>(null);
