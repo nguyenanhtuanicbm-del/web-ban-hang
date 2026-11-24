@@ -114,11 +114,16 @@ export default async function OrderDetailPage({
         <h2 className="mb-2 font-semibold text-gray-900">Sản phẩm</h2>
         <div className="flex flex-col divide-y divide-gray-100">
           {items.map((item) => (
-            <div key={item.id} className="flex justify-between py-2 text-sm">
-              <span>
-                {item.product_name} x{item.quantity} {item.variant?.unit ?? ""}
+            <div key={item.id} className="flex items-start justify-between gap-2 py-2 text-sm">
+              <div>
+                <p className="text-gray-900">{item.product_name}</p>
+                <p className="text-xs text-gray-400">
+                  {item.quantity} {item.variant?.unit ?? ""} × {formatVND(item.unit_price)}
+                </p>
+              </div>
+              <span className="flex-shrink-0 font-medium">
+                {formatVND(item.unit_price * item.quantity)}
               </span>
-              <span className="font-medium">{formatVND(item.unit_price * item.quantity)}</span>
             </div>
           ))}
         </div>
