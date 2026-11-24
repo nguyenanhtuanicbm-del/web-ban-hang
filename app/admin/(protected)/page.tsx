@@ -14,6 +14,11 @@ interface LowStockRow {
   product: { name: string } | null;
 }
 
+interface TodayOrderRow {
+  total: number;
+  order_items: { quantity: number; variant: { cost_price: number } | null }[];
+}
+
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
@@ -24,7 +29,7 @@ export default async function AdminDashboardPage() {
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "new"),
     supabase
       .from("orders")
-      .select("total")
+      .select("total, order_items(quantity, variant:product_variants(cost_price))")
       .neq("status", "cancelled")
       .gte("created_at", startOfToday.toISOString()),
     supabase
@@ -36,13 +41,30 @@ export default async function AdminDashboardPage() {
     supabase.from("inventory_value").select("stock_value"),
   ]);
 
-  const revenueToday = (todayOrders.data ?? []).reduce((sum, o) => sum + Number(o.total), 0);
+  const todayOrdersData = (todayOrders.data ?? []) as unknown as TodayOrderRow[];
+  const revenueToday = todayOrdersData.reduce((sum, o) => sum + Number(o.total), 0);
+  const costToday = todayOrdersData.reduce(
+    (sum, o) =>
+      sum +
+      o.order_items.reduce(
+        (s, item) => s + Number(item.quantity) * Number(item.variant?.cost_price ?? 0),
+        0
+      ),
+    0
+  );
+  const profitToday = revenueToday - costToday;
   const lowStockRows = (lowStock.data ?? []) as LowStockRow[];
   const totalStockValue = (stockValue.data ?? []).reduce((sum, r) => sum + Number(r.stock_value), 0);
 
-  const stats: { label: string; value: string | number; href?: string }[] = [
+  const stats: { label: string; value: string | number; href?: string; valueClassName?: string }[] = [
     { label: "Đơn hàng mới", value: newOrders.count ?? 0 },
     { label: "Doanh thu hôm nay", value: formatVND(revenueToday) },
+    { label: "Vốn hàng bán hôm nay", value: formatVND(costToday) },
+    {
+      label: "Lợi nhuận hôm nay",
+      value: formatVND(profitToday),
+      valueClassName: profitToday >= 0 ? "text-green-600" : "text-red-600",
+    },
     { label: "Sắp hết hàng", value: lowStockRows.length },
     {
       label: "Giá trị tồn kho",
@@ -60,7 +82,9 @@ export default async function AdminDashboardPage() {
           const content = (
             <>
               <p className="text-sm text-gray-500">{stat.label}</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900">{stat.value}</p>
+              <p className={`mt-1 text-2xl font-bold ${stat.valueClassName ?? "text-gray-900"}`}>
+                {stat.value}
+              </p>
             </>
           );
           return stat.href ? (
