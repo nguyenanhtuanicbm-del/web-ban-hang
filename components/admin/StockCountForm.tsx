@@ -74,6 +74,7 @@ export default function StockCountForm({
                     <input
                       type="number"
                       min={0}
+                      step="any"
                       value={value}
                       onChange={(e) =>
                         setCounted((prev) => ({ ...prev, [item.variantId]: Number(e.target.value) }))

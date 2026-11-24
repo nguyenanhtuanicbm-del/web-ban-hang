@@ -1,6 +1,7 @@
 "use server";
 
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/format";
@@ -65,6 +66,35 @@ function parseAttributes(raw: string): Record<string, string> {
   return attrs;
 }
 
+/**
+ * Một số phần mềm văn phòng (vd: GenOffice/WPS) xuất file .xlsx với các thẻ XML
+ * mang tiền tố namespace "x:" (vd: <x:sst>, <x:si>) thay vì không tiền tố như
+ * Excel/Google Sheets/LibreOffice. exceljs không parse được dạng này ("Unexpected
+ * xml node in parseOpen"). Hàm này bóc tách file .xlsx (vốn chỉ là 1 file zip),
+ * gỡ tiền tố "x:" khỏi mọi XML bên trong rồi nén lại để exceljs đọc được bình
+ * thường — chỉ dùng khi lần đọc đầu tiên thất bại, không ảnh hưởng file chuẩn.
+ */
+async function normalizeXlsxBuffer(buffer: ArrayBuffer): Promise<ArrayBuffer> {
+  const zip = await JSZip.loadAsync(buffer);
+
+  for (const name of Object.keys(zip.files)) {
+    const entry = zip.files[name];
+    if (entry.dir || !(name.endsWith(".xml") || name.endsWith(".rels"))) continue;
+
+    const content = await entry.async("string");
+    const fixed = content
+      .replace(/xmlns:x="([^"]*)"/g, 'xmlns="$1"')
+      .replace(/<x:/g, "<")
+      .replace(/<\/x:/g, "</");
+
+    if (fixed !== content) {
+      zip.file(name, fixed);
+    }
+  }
+
+  return zip.generateAsync({ type: "arraybuffer" });
+}
+
 export async function importProductsFromExcel(
   _prevState: ImportResult,
   formData: FormData
@@ -75,12 +105,19 @@ export async function importProductsFromExcel(
   }
 
   let workbook: ExcelJS.Workbook;
+  const originalBuffer = await file.arrayBuffer();
   try {
-    const buffer = await file.arrayBuffer();
     workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
+    await workbook.xlsx.load(originalBuffer);
   } catch {
-    return { error: "Không đọc được file. Vui lòng dùng đúng file .xlsx theo mẫu." };
+    try {
+      const normalized = await normalizeXlsxBuffer(originalBuffer);
+      workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(normalized);
+    } catch (err) {
+      console.error("Lỗi đọc file Excel:", err);
+      return { error: "Không đọc được file. Vui lòng dùng đúng file .xlsx theo mẫu." };
+    }
   }
 
   const sheet = workbook.worksheets[0];
@@ -280,7 +317,7 @@ export async function importProductsFromExcel(
         }
 
         if (row.initialStock > 0 && defaultWarehouseId) {
-          await applyStockChange(supabase, {
+          const stockResult = await applyStockChange(supabase, {
             variantId: variant.id,
             warehouseId: defaultWarehouseId,
             quantityChange: row.initialStock,
@@ -289,6 +326,12 @@ export async function importProductsFromExcel(
             note: "Tồn kho ban đầu khi nhập từ Excel",
             createdBy,
           });
+          if (!stockResult.ok) {
+            rowErrors.push({
+              row: row.rowNumber,
+              reason: `Đã tạo sản phẩm nhưng không set được tồn kho ban đầu (${stockResult.error || "lỗi không xác định"}).`,
+            });
+          }
         }
 
         variantsCreated += 1;

@@ -1,10 +1,13 @@
+import Link from "next/link";
 import { Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getDefaultPriceListId } from "@/lib/stock";
 import { formatVND } from "@/lib/format";
 import {
   filterStockValueRows,
+  filterStockValueRowsByCategory,
   getStockValueRows,
+  groupStockValueByCategory,
   sortStockValueRowsByValueDesc,
   stockValueTotals,
 } from "@/lib/inventory-value";
@@ -33,23 +36,38 @@ function StatCard({
 export default async function StockValuePage({
   searchParams,
 }: {
-  searchParams: Promise<{ kho?: string; q?: string }>;
+  searchParams: Promise<{ kho?: string; danh_muc?: string; q?: string }>;
 }) {
-  const { kho: warehouseId, q } = await searchParams;
+  const { kho: warehouseId, danh_muc: categoryId, q } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: warehouses }, defaultPriceListId] = await Promise.all([
+  const [{ data: warehouses }, { data: categories }, defaultPriceListId] = await Promise.all([
     supabase.from("warehouses").select("*").order("name"),
+    supabase.from("categories").select("*").order("name"),
     getDefaultPriceListId(supabase),
   ]);
 
   const allRows = await getStockValueRows(supabase, { warehouseId, defaultPriceListId });
-  const filtered = sortStockValueRowsByValueDesc(filterStockValueRows(allRows, q));
+  const searchFiltered = filterStockValueRows(allRows, q);
+  const categoryBreakdown = groupStockValueByCategory(searchFiltered);
+  const filtered = sortStockValueRowsByValueDesc(
+    filterStockValueRowsByCategory(searchFiltered, categoryId)
+  );
   const totals = stockValueTotals(filtered);
 
   const exportParams = new URLSearchParams();
   if (warehouseId) exportParams.set("kho", warehouseId);
+  if (categoryId) exportParams.set("danh_muc", categoryId);
   if (q) exportParams.set("q", q);
+
+  function categoryLink(id: string | null) {
+    const params = new URLSearchParams();
+    if (warehouseId) params.set("kho", warehouseId);
+    if (q) params.set("q", q);
+    if (id) params.set("danh_muc", id);
+    const qs = params.toString();
+    return `/admin/kho/gia-tri-ton-kho${qs ? `?${qs}` : ""}`;
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -88,6 +106,18 @@ export default async function StockValuePage({
             </option>
           ))}
         </select>
+        <select
+          name="danh_muc"
+          defaultValue={categoryId ?? ""}
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+        >
+          <option value="">Tất cả danh mục</option>
+          {(categories ?? []).map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
         <input
           name="q"
           defaultValue={q}
@@ -101,6 +131,50 @@ export default async function StockValuePage({
           Lọc
         </button>
       </form>
+
+      <h2 className="-mb-2 font-semibold text-gray-900">Theo danh mục</h2>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-gray-500">
+              <th className="px-4 py-2">Danh mục</th>
+              <th className="px-4 py-2 text-right">Số SKU</th>
+              <th className="px-4 py-2 text-right">Tồn kho</th>
+              <th className="px-4 py-2 text-right">Giá trị vốn</th>
+              <th className="px-4 py-2 text-right">Giá trị bán</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categoryBreakdown.map((c) => (
+              <tr
+                key={c.categoryId ?? "none"}
+                className={`border-t border-gray-100 ${
+                  categoryId === c.categoryId ? "bg-brand-50" : ""
+                }`}
+              >
+                <td className="px-4 py-2">
+                  <Link href={categoryLink(c.categoryId)} className="text-brand-600 hover:underline">
+                    {c.categoryName}
+                  </Link>
+                </td>
+                <td className="px-4 py-2 text-right">{c.skuCount}</td>
+                <td className="px-4 py-2 text-right">{c.quantity.toLocaleString("vi-VN")}</td>
+                <td className="px-4 py-2 text-right font-medium">{formatVND(c.costValue)}</td>
+                <td className="px-4 py-2 text-right">{formatVND(c.retailValue)}</td>
+              </tr>
+            ))}
+            {categoryBreakdown.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-gray-400">
+                  Chưa có dữ liệu.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="-mb-2 font-semibold text-gray-900">Chi tiết theo sản phẩm</h2>
 
       {/* Điện thoại: dạng thẻ — bảng 8 cột quá chật, cuộn ngang khó đọc nên tách riêng. */}
       <div className="flex flex-col gap-3 sm:hidden">

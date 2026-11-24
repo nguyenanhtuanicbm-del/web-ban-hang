@@ -1,4 +1,10 @@
 export type OrderStatus = "new" | "processing" | "completed" | "cancelled";
+export type PriceAdjustMode =
+  | "percent_increase"
+  | "percent_decrease"
+  | "amount_increase"
+  | "amount_decrease"
+  | "set";
 export type OrderSource = "online" | "in_store";
 export type PaymentMethod = "cash" | "card" | "transfer" | "credit";
 export type PurchaseOrderStatus = "draft" | "received" | "cancelled";

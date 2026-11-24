@@ -1,9 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatVariantAttributes } from "@/lib/types";
+import { chunkArray } from "@/lib/utils";
+
+const ID_BATCH_SIZE = 150;
 
 export interface StockValueRow {
   variantId: string;
   productName: string;
+  categoryId: string | null;
   categoryName: string | null;
   attrLabel: string;
   sku: string;
@@ -22,7 +26,7 @@ interface InventoryValueRow {
   low_stock_threshold: number;
   is_active: boolean;
   total_quantity: number;
-  product: { name: string; category: { name: string } | null } | null;
+  product: { name: string; category: { id: string; name: string } | null } | null;
 }
 
 interface StockRowWithVariant {
@@ -34,7 +38,7 @@ interface StockRowWithVariant {
     cost_price: number;
     low_stock_threshold: number;
     is_active: boolean;
-    product: { name: string; category: { name: string } | null } | null;
+    product: { name: string; category: { id: string; name: string } | null } | null;
   } | null;
 }
 
@@ -52,7 +56,7 @@ export async function getStockValueRows(
   if (!warehouseId) {
     const { data } = await supabase
       .from("inventory_value")
-      .select("*, product:products(name, category:categories(name))");
+      .select("*, product:products(name, category:categories(id, name))");
 
     const rows = (data ?? []) as unknown as InventoryValueRow[];
     const variantIds = rows.map((r) => r.variant_id);
@@ -61,6 +65,7 @@ export async function getStockValueRows(
     return rows.map((r) => ({
       variantId: r.variant_id,
       productName: r.product?.name ?? "Sản phẩm",
+      categoryId: r.product?.category?.id ?? null,
       categoryName: r.product?.category?.name ?? null,
       attrLabel: formatVariantAttributes(r.attributes),
       sku: r.sku,
@@ -75,7 +80,7 @@ export async function getStockValueRows(
   const { data } = await supabase
     .from("inventory_stock")
     .select(
-      "variant_id, quantity, variant:product_variants(sku, attributes, cost_price, low_stock_threshold, is_active, product:products(name, category:categories(name)))"
+      "variant_id, quantity, variant:product_variants(sku, attributes, cost_price, low_stock_threshold, is_active, product:products(name, category:categories(id, name)))"
     )
     .eq("warehouse_id", warehouseId);
 
@@ -86,6 +91,7 @@ export async function getStockValueRows(
   return rows.map((r) => ({
     variantId: r.variant_id,
     productName: r.variant?.product?.name ?? "Sản phẩm",
+    categoryId: r.variant?.product?.category?.id ?? null,
     categoryName: r.variant?.product?.category?.name ?? null,
     attrLabel: formatVariantAttributes(r.variant?.attributes ?? {}),
     sku: r.variant?.sku ?? "",
@@ -104,13 +110,18 @@ async function getPriceMap(
 ): Promise<Map<string, number>> {
   if (!defaultPriceListId || variantIds.length === 0) return new Map();
 
-  const { data } = await supabase
-    .from("price_list_items")
-    .select("variant_id, price")
-    .eq("price_list_id", defaultPriceListId)
-    .in("variant_id", variantIds);
+  const batches = chunkArray(variantIds, ID_BATCH_SIZE);
+  const results = await Promise.all(
+    batches.map((batch) =>
+      supabase
+        .from("price_list_items")
+        .select("variant_id, price")
+        .eq("price_list_id", defaultPriceListId)
+        .in("variant_id", batch)
+    )
+  );
 
-  return new Map((data ?? []).map((p) => [p.variant_id, p.price]));
+  return new Map(results.flatMap((r) => (r.data ?? []).map((p) => [p.variant_id, p.price] as const)));
 }
 
 export function filterStockValueRows(rows: StockValueRow[], search?: string): StockValueRow[] {
@@ -119,6 +130,49 @@ export function filterStockValueRows(rows: StockValueRow[], search?: string): St
   return rows.filter(
     (r) => r.productName.toLowerCase().includes(needle) || r.sku.toLowerCase().includes(needle)
   );
+}
+
+export function filterStockValueRowsByCategory(
+  rows: StockValueRow[],
+  categoryId?: string
+): StockValueRow[] {
+  if (!categoryId) return rows;
+  return rows.filter((r) => r.categoryId === categoryId);
+}
+
+export interface CategoryStockValue {
+  categoryId: string | null;
+  categoryName: string;
+  skuCount: number;
+  quantity: number;
+  costValue: number;
+  retailValue: number;
+}
+
+/** Gộp tồn kho + giá trị theo từng danh mục — phục vụ xem "tồn kho theo danh mục". */
+export function groupStockValueByCategory(rows: StockValueRow[]): CategoryStockValue[] {
+  const map = new Map<string, CategoryStockValue>();
+
+  for (const r of rows) {
+    const key = r.categoryId ?? "__none__";
+    if (!map.has(key)) {
+      map.set(key, {
+        categoryId: r.categoryId,
+        categoryName: r.categoryName ?? "Chưa phân loại",
+        skuCount: 0,
+        quantity: 0,
+        costValue: 0,
+        retailValue: 0,
+      });
+    }
+    const entry = map.get(key)!;
+    entry.quantity += r.quantity;
+    entry.costValue += r.quantity * r.costPrice;
+    entry.retailValue += r.quantity * r.price;
+    if (r.quantity > 0) entry.skuCount += 1;
+  }
+
+  return [...map.values()].sort((a, b) => b.costValue - a.costValue);
 }
 
 export function sortStockValueRowsByValueDesc(rows: StockValueRow[]): StockValueRow[] {

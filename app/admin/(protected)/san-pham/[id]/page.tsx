@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProductByIdForAdmin } from "@/lib/queries";
 import ProductForm from "@/components/admin/ProductForm";
-import { updateProduct } from "../actions";
+import { adjustVariantStock, updateProduct } from "../actions";
 
 export const revalidate = 0;
 
@@ -24,7 +24,12 @@ export default async function EditProductPage({
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold text-gray-900">Sửa sản phẩm</h1>
-      <ProductForm categories={categories ?? []} product={product} action={updateProduct} />
+      <ProductForm
+        categories={categories ?? []}
+        product={product}
+        action={updateProduct}
+        onAdjustStock={adjustVariantStock}
+      />
     </div>
   );
 }

@@ -189,7 +189,8 @@ export default function PurchaseOrderForm({
                   <td className="px-3 py-2">
                     <input
                       type="number"
-                      min={1}
+                      min={0.001}
+                      step="any"
                       value={item.quantity}
                       onChange={(e) => updateItem(item.variantId, { quantity: Number(e.target.value) })}
                       className="w-16 rounded-md border border-gray-300 px-2 py-1"

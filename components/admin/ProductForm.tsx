@@ -7,10 +7,12 @@ export default function ProductForm({
   categories,
   product,
   action,
+  onAdjustStock,
 }: {
   categories: Category[];
   product?: Product;
   action: (formData: FormData) => void | Promise<void>;
+  onAdjustStock?: (formData: FormData) => Promise<{ ok: boolean; quantity?: number; error?: string }>;
 }) {
   return (
     <form action={action} className="flex max-w-4xl flex-col gap-4">
@@ -91,7 +93,7 @@ export default function ProductForm({
 
       <div className="border-t border-gray-200 pt-4">
         <h2 className="mb-3 font-semibold text-gray-900">Biến thể &amp; giá bán</h2>
-        <VariantEditor initialVariants={product?.variants ?? []} />
+        <VariantEditor initialVariants={product?.variants ?? []} onAdjustStock={onAdjustStock} />
       </div>
 
       <button

@@ -78,7 +78,7 @@ export default function InStoreSaleForm({
 
   function updateQuantity(variantId: string, quantity: number) {
     setItems((prev) =>
-      prev.map((i) => (i.variantId === variantId ? { ...i, quantity: Math.max(1, quantity) } : i))
+      prev.map((i) => (i.variantId === variantId ? { ...i, quantity: Math.max(0.001, quantity) } : i))
     );
   }
 
@@ -128,8 +128,9 @@ export default function InStoreSaleForm({
               <span className="flex-1">{option.label}</span>
               <input
                 type="number"
-                min={1}
+                min={0.001}
                 max={option.stock}
+                step="any"
                 value={item.quantity}
                 onChange={(e) => updateQuantity(item.variantId, Number(e.target.value))}
                 className="w-16 rounded-md border border-gray-300 px-2 py-1 text-center"

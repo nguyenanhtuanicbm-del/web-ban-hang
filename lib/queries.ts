@@ -2,6 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import { Category, Product, Variant } from "@/lib/types";
+import { chunkArray } from "@/lib/utils";
+
+/** Giới hạn số id mỗi lần gọi .in(...) để tránh query string quá dài khi danh mục có hàng trăm sản phẩm. */
+const ID_BATCH_SIZE = 150;
 
 async function getDefaultPriceListId(supabase: SupabaseClient): Promise<string | null> {
   const { data } = await supabase
@@ -27,21 +31,32 @@ async function attachPricingAndStock(
   if (variants.length === 0) return variants;
 
   const variantIds = variants.map((v) => v.id);
+  const batches = chunkArray(variantIds, ID_BATCH_SIZE);
 
-  const [priceItemsResult, stockTotalsResult] = await Promise.all([
+  const [priceResults, stockResults] = await Promise.all([
     defaultPriceListId
-      ? supabase
-          .from("price_list_items")
-          .select("variant_id, price")
-          .eq("price_list_id", defaultPriceListId)
-          .in("variant_id", variantIds)
-      : Promise.resolve({ data: [] as { variant_id: string; price: number }[] }),
-    supabase.from("variant_total_stock").select("variant_id, total_quantity").in("variant_id", variantIds),
+      ? Promise.all(
+          batches.map((batch) =>
+            supabase
+              .from("price_list_items")
+              .select("variant_id, price")
+              .eq("price_list_id", defaultPriceListId)
+              .in("variant_id", batch)
+          )
+        )
+      : Promise.resolve([]),
+    Promise.all(
+      batches.map((batch) =>
+        supabase.from("variant_total_stock").select("variant_id, total_quantity").in("variant_id", batch)
+      )
+    ),
   ]);
 
-  const priceMap = new Map((priceItemsResult.data ?? []).map((p) => [p.variant_id, p.price]));
+  const priceMap = new Map(
+    priceResults.flatMap((r) => (r.data ?? []).map((p) => [p.variant_id, p.price] as const))
+  );
   const stockMap = new Map(
-    (stockTotalsResult.data ?? []).map((s) => [s.variant_id, s.total_quantity])
+    stockResults.flatMap((r) => (r.data ?? []).map((s) => [s.variant_id, s.total_quantity] as const))
   );
 
   return variants.map((v) => ({

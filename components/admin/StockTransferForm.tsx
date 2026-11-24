@@ -74,7 +74,7 @@ export default function StockTransferForm({
 
   function updateQuantity(variantId: string, quantity: number) {
     setItems((prev) =>
-      prev.map((i) => (i.variantId === variantId ? { ...i, quantity: Math.max(1, quantity) } : i))
+      prev.map((i) => (i.variantId === variantId ? { ...i, quantity: Math.max(0.001, quantity) } : i))
     );
   }
 
@@ -177,8 +177,9 @@ export default function StockTransferForm({
                   <td className="px-3 py-2 text-right">
                     <input
                       type="number"
-                      min={1}
+                      min={0.001}
                       max={available}
+                      step="any"
                       value={item.quantity}
                       onChange={(e) => updateQuantity(item.variantId, Number(e.target.value))}
                       className="w-20 rounded-md border border-gray-300 px-2 py-1 text-right"

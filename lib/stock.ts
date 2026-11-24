@@ -32,7 +32,7 @@ export async function applyStockChange(
     note?: string;
     createdBy?: string | null;
   }
-): Promise<{ ok: boolean; balanceAfter: number }> {
+): Promise<{ ok: boolean; balanceAfter: number; error?: string }> {
   const { data: existing } = await supabase
     .from("inventory_stock")
     .select("id, quantity")
@@ -48,20 +48,38 @@ export async function applyStockChange(
   }
 
   if (existing) {
-    await supabase
+    const { data: updated, error } = await supabase
       .from("inventory_stock")
       .update({ quantity: newQuantity })
       .eq("id", existing.id)
-      .eq("quantity", currentQuantity);
+      .eq("quantity", currentQuantity)
+      .select("id");
+
+    if (error) {
+      console.error("applyStockChange: lỗi cập nhật inventory_stock:", error);
+      return { ok: false, balanceAfter: currentQuantity, error: error.message };
+    }
+    if (!updated || updated.length === 0) {
+      console.error("applyStockChange: update không khớp dòng nào (tồn kho vừa bị thay đổi bởi thao tác khác)");
+      return {
+        ok: false,
+        balanceAfter: currentQuantity,
+        error: "Tồn kho vừa được thay đổi bởi thao tác khác, vui lòng tải lại trang và thử lại.",
+      };
+    }
   } else {
-    await supabase.from("inventory_stock").insert({
+    const { error } = await supabase.from("inventory_stock").insert({
       variant_id: params.variantId,
       warehouse_id: params.warehouseId,
       quantity: newQuantity,
     });
+    if (error) {
+      console.error("applyStockChange: lỗi thêm inventory_stock:", error);
+      return { ok: false, balanceAfter: currentQuantity, error: error.message };
+    }
   }
 
-  await supabase.from("stock_ledger").insert({
+  const { error: ledgerError } = await supabase.from("stock_ledger").insert({
     variant_id: params.variantId,
     warehouse_id: params.warehouseId,
     change_type: params.changeType,
@@ -72,6 +90,9 @@ export async function applyStockChange(
     note: params.note ?? null,
     created_by: params.createdBy ?? null,
   });
+  if (ledgerError) {
+    console.error("applyStockChange: lỗi ghi stock_ledger:", ledgerError);
+  }
 
   return { ok: true, balanceAfter: newQuantity };
 }

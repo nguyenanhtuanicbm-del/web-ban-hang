@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { UNIT_OPTIONS, Variant } from "@/lib/types";
 import { slugify } from "@/lib/format";
 
@@ -118,12 +118,22 @@ function emptyRow(): VariantRow {
   };
 }
 
-export default function VariantEditor({ initialVariants }: { initialVariants: Variant[] }) {
+export default function VariantEditor({
+  initialVariants,
+  onAdjustStock,
+}: {
+  initialVariants: Variant[];
+  /** Chỉ truyền ở trang sửa sản phẩm — cho phép điều chỉnh nhanh tồn kho ngay tại đây. */
+  onAdjustStock?: (formData: FormData) => Promise<{ ok: boolean; quantity?: number; error?: string }>;
+}) {
   const initial = attributesToRows(initialVariants);
   const [attributeRows, setAttributeRows] = useState<AttributeRow[]>(initial.attributeRows);
   const [variantRows, setVariantRows] = useState<VariantRow[]>(
     initial.variantRows.length > 0 ? initial.variantRows : [emptyRow()]
   );
+  const [adjustingKey, setAdjustingKey] = useState<string | null>(null);
+  const [stockInput, setStockInput] = useState("");
+  const [isSavingStock, startSavingStock] = useTransition();
 
   function applyAttributes() {
     const combos = cartesianProduct(attributeRows);
@@ -145,6 +155,34 @@ export default function VariantEditor({ initialVariants }: { initialVariants: Va
 
   function removeRow(key: string) {
     setVariantRows((prev) => prev.filter((r) => r.key !== key));
+  }
+
+  function openStockEditor(row: VariantRow) {
+    setAdjustingKey(row.key);
+    setStockInput(String(row.currentStock ?? 0));
+  }
+
+  function saveStock(row: VariantRow) {
+    if (!onAdjustStock || !row.dbId) return;
+    const newQuantity = Number(stockInput);
+    if (!Number.isFinite(newQuantity) || newQuantity < 0) {
+      alert("Vui lòng nhập số lượng hợp lệ.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("variant_id", row.dbId);
+    formData.set("new_quantity", stockInput);
+
+    startSavingStock(async () => {
+      const result = await onAdjustStock(formData);
+      if (result.ok) {
+        updateRow(row.key, { currentStock: result.quantity ?? newQuantity });
+        setAdjustingKey(null);
+      } else {
+        alert(result.error || "Không thể cập nhật tồn kho.");
+      }
+    });
   }
 
   const hasExisting = variantRows.some((r) => r.dbId);
@@ -282,6 +320,7 @@ export default function VariantEditor({ initialVariants }: { initialVariants: Va
                   <input
                     type="number"
                     min={0}
+                    step="any"
                     value={row.lowStockThreshold}
                     onChange={(e) => updateRow(row.key, { lowStockThreshold: e.target.value })}
                     className="w-20 rounded-md border border-gray-300 px-2 py-1"
@@ -289,11 +328,56 @@ export default function VariantEditor({ initialVariants }: { initialVariants: Va
                 </td>
                 <td className="px-3 py-2">
                   {row.dbId ? (
-                    <span className="text-gray-700">{row.currentStock ?? 0}</span>
+                    adjustingKey === row.key ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          step="any"
+                          autoFocus
+                          value={stockInput}
+                          onChange={(e) => setStockInput(e.target.value)}
+                          className="w-16 rounded-md border border-gray-300 px-2 py-1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveStock(row)}
+                          disabled={isSavingStock}
+                          className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                          aria-label="Lưu tồn kho"
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAdjustingKey(null)}
+                          disabled={isSavingStock}
+                          className="text-gray-400 hover:text-gray-600"
+                          aria-label="Hủy"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-700">{row.currentStock ?? 0}</span>
+                        {onAdjustStock && (
+                          <button
+                            type="button"
+                            onClick={() => openStockEditor(row)}
+                            className="text-gray-400 hover:text-brand-600"
+                            aria-label="Điều chỉnh tồn kho"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    )
                   ) : (
                     <input
                       type="number"
                       min={0}
+                      step="any"
                       value={row.initialStock}
                       onChange={(e) => updateRow(row.key, { initialStock: e.target.value })}
                       className="w-20 rounded-md border border-gray-300 px-2 py-1"
@@ -324,8 +408,9 @@ export default function VariantEditor({ initialVariants }: { initialVariants: Va
         </table>
       </div>
       <p className="text-xs text-gray-500">
-        Sau khi tạo, tồn kho chỉ chỉnh được qua &quot;Nhập hàng&quot;, &quot;Kiểm kho&quot; hoặc
-        &quot;Điều chuyển kho&quot; để thẻ kho luôn chính xác.
+        {onAdjustStock
+          ? "Bấm biểu tượng bút cạnh số tồn kho để điều chỉnh nhanh (vẫn ghi vào thẻ kho). Dùng \"Nhập hàng\", \"Kiểm kho\" hoặc \"Điều chuyển kho\" cho các thay đổi lớn/có nhiều sản phẩm."
+          : "Sau khi tạo, tồn kho chỉ chỉnh được qua \"Nhập hàng\", \"Kiểm kho\" hoặc \"Điều chuyển kho\" để thẻ kho luôn chính xác."}
       </p>
     </div>
   );

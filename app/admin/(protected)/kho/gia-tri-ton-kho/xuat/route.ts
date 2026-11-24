@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDefaultPriceListId } from "@/lib/stock";
 import {
   filterStockValueRows,
+  filterStockValueRowsByCategory,
   getStockValueRows,
   sortStockValueRowsByValueDesc,
 } from "@/lib/inventory-value";
@@ -11,12 +12,14 @@ import {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const warehouseId = searchParams.get("kho") || undefined;
+  const categoryId = searchParams.get("danh_muc") || undefined;
   const q = searchParams.get("q") || undefined;
 
   const supabase = await createClient();
   const defaultPriceListId = await getDefaultPriceListId(supabase);
+  const allRows = await getStockValueRows(supabase, { warehouseId, defaultPriceListId });
   const rows = sortStockValueRowsByValueDesc(
-    filterStockValueRows(await getStockValueRows(supabase, { warehouseId, defaultPriceListId }), q)
+    filterStockValueRowsByCategory(filterStockValueRows(allRows, q), categoryId)
   );
 
   const workbook = new ExcelJS.Workbook();
