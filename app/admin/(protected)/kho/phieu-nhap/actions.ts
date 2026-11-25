@@ -109,6 +109,7 @@ export async function receivePurchaseOrder(formData: FormData) {
   const createdBy = userResult.user?.id ?? null;
 
   const subtotal = items.reduce((sum, i) => sum + i.quantity * i.unit_cost, 0);
+  let stockWarnings = 0;
 
   for (const item of items) {
     const share = subtotal > 0 ? (item.quantity * item.unit_cost) / subtotal : 1 / items.length;
@@ -136,7 +137,7 @@ export async function receivePurchaseOrder(formData: FormData) {
       .update({ cost_price: newAvgCost })
       .eq("id", item.variant_id);
 
-    await applyStockChange(supabase, {
+    const stockResult = await applyStockChange(supabase, {
       variantId: item.variant_id,
       warehouseId: po.warehouse_id,
       quantityChange: item.quantity,
@@ -146,6 +147,7 @@ export async function receivePurchaseOrder(formData: FormData) {
       note: `Nhập từ phiếu ${po.code}`,
       createdBy,
     });
+    if (!stockResult.ok) stockWarnings += 1;
 
     if (item.lot_code) {
       await supabase.from("stock_lots").insert({
@@ -168,7 +170,13 @@ export async function receivePurchaseOrder(formData: FormData) {
   revalidatePath("/admin/kho/phieu-nhap");
   revalidatePath(`/admin/kho/phieu-nhap/${id}`);
   revalidatePath("/admin/san-pham");
-  await setFlash("success", `Đã nhận hàng cho phiếu ${po.code}, tồn kho và giá vốn đã cập nhật.`);
+  await setFlash(
+    "success",
+    `Đã nhận hàng cho phiếu ${po.code}, tồn kho và giá vốn đã cập nhật.` +
+      (stockWarnings > 0
+        ? ` (${stockWarnings} sản phẩm không cập nhật được tồn kho, vui lòng kiểm tra lại.)`
+        : "")
+  );
 }
 
 export async function cancelPurchaseOrder(formData: FormData) {

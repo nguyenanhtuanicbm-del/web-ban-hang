@@ -87,11 +87,13 @@ export async function completeStockCount(formData: FormData) {
   const { data: userResult } = await supabase.auth.getUser();
   const createdBy = userResult.user?.id ?? null;
 
+  let stockWarnings = 0;
+
   for (const item of items) {
     const diff = item.counted_quantity - item.system_quantity;
     if (diff === 0) continue;
 
-    await applyStockChange(supabase, {
+    const stockResult = await applyStockChange(supabase, {
       variantId: item.variant_id,
       warehouseId: count.warehouse_id,
       quantityChange: diff,
@@ -101,6 +103,7 @@ export async function completeStockCount(formData: FormData) {
       note: `Điều chỉnh theo phiếu kiểm kho ${count.code}`,
       createdBy,
     });
+    if (!stockResult.ok) stockWarnings += 1;
   }
 
   await supabase
@@ -112,5 +115,11 @@ export async function completeStockCount(formData: FormData) {
   revalidatePath("/admin/kho/kiem-ke");
   revalidatePath(`/admin/kho/kiem-ke/${id}`);
   revalidatePath("/admin/san-pham");
-  await setFlash("success", `Đã hoàn tất kiểm kho ${count.code}, tồn kho đã được điều chỉnh.`);
+  await setFlash(
+    "success",
+    `Đã hoàn tất kiểm kho ${count.code}, tồn kho đã được điều chỉnh.` +
+      (stockWarnings > 0
+        ? ` (${stockWarnings} sản phẩm không cập nhật được tồn kho, vui lòng kiểm tra lại.)`
+        : "")
+  );
 }

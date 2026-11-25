@@ -119,7 +119,7 @@ export async function completeStockTransfer(formData: FormData) {
       continue;
     }
 
-    await applyStockChange(supabase, {
+    const inResult = await applyStockChange(supabase, {
       variantId: item.variant_id,
       warehouseId: transfer.to_warehouse_id,
       quantityChange: item.quantity,
@@ -129,6 +129,7 @@ export async function completeStockTransfer(formData: FormData) {
       note: `Nhận từ kho khác — phiếu ${transfer.code}`,
       createdBy,
     });
+    if (!inResult.ok) skipped += 1;
   }
 
   await supabase
