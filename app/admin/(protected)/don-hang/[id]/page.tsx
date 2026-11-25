@@ -6,7 +6,8 @@ import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, type OrderStatus, type Paymen
 import CancelOrderButton from "@/components/admin/CancelOrderButton";
 import PrintReceiptButton from "@/components/admin/PrintReceiptButton";
 import OrderReceipt from "@/components/admin/OrderReceipt";
-import { updateOrderStatus, cancelOrder } from "../actions";
+import EditableCustomerInfo from "@/components/admin/EditableCustomerInfo";
+import { updateOrderStatus, cancelOrder, updateOrderCustomerInfo } from "../actions";
 
 export const revalidate = 0;
 
@@ -82,17 +83,18 @@ export default async function OrderDetailPage({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="mb-2 font-semibold text-gray-900">Thông tin khách hàng</h2>
-        <dl className="grid grid-cols-[120px_1fr] gap-y-1 text-sm">
-          <dt className="text-gray-500">Họ tên</dt>
-          <dd>{order.customer_name}</dd>
-          <dt className="text-gray-500">Điện thoại</dt>
-          <dd>{order.phone}</dd>
-          <dt className="text-gray-500">Địa chỉ</dt>
-          <dd>{order.address || "—"}</dd>
-          <dt className="text-gray-500">Ghi chú</dt>
-          <dd>{order.note || "—"}</dd>
+      <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4">
+        <EditableCustomerInfo
+          order={{
+            id: order.id,
+            customer_name: order.customer_name,
+            phone: order.phone,
+            address: order.address,
+            note: order.note,
+          }}
+          action={updateOrderCustomerInfo}
+        />
+        <dl className="grid grid-cols-[120px_1fr] gap-y-1 border-t border-gray-100 pt-3 text-sm">
           <dt className="text-gray-500">Nguồn</dt>
           <dd>{order.source === "in_store" ? "Bán tại cửa hàng" : "Đặt online"}</dd>
           <dt className="text-gray-500">Thanh toán</dt>

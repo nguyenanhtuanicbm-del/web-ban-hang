@@ -81,3 +81,36 @@ export async function cancelOrder(formData: FormData) {
   revalidatePath("/admin/san-pham");
   await setFlash("success", `Đã hủy đơn hàng ${order.code} và hoàn lại tồn kho.`);
 }
+
+export async function updateOrderCustomerInfo(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  const customerName = String(formData.get("customer_name") || "").trim();
+  const phone = String(formData.get("phone") || "").trim();
+  const address = String(formData.get("address") || "").trim();
+  const note = String(formData.get("note") || "").trim();
+
+  if (!id || !customerName) {
+    await setFlash("error", "Vui lòng nhập tên khách hàng.");
+    return;
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("orders")
+    .update({
+      customer_name: customerName,
+      phone: phone || "—",
+      address: address || null,
+      note: note || null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    await setFlash("error", "Không thể cập nhật thông tin khách hàng.");
+    return;
+  }
+
+  revalidatePath("/admin/don-hang");
+  revalidatePath(`/admin/don-hang/${id}`);
+  await setFlash("success", "Đã cập nhật thông tin khách hàng.");
+}
