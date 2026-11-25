@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Pencil, Tag, Trash2 } from "lucide-react";
 import type { PriceAdjustMode, Product } from "@/lib/types";
-import { productMinPrice, productTotalStock, productUnit } from "@/lib/product-helpers";
+import { productMinPrice, productProfit, productTotalStock, productUnit } from "@/lib/product-helpers";
 import { formatVND } from "@/lib/format";
 import ProductImage from "@/components/ProductImage";
 
@@ -225,12 +225,21 @@ export default function ProductsAdminList({
             </div>
             <div className="mt-3 flex items-center justify-between text-sm">
               <div>
-                <span className="font-medium text-gray-900">
-                  {(product.variants?.length ?? 0) > 1 ? "Từ " : ""}
-                  {formatVND(productMinPrice(product))}
-                </span>
-                <span className="ml-2 text-gray-500">
-                  Tồn: {productTotalStock(product)} {productUnit(product)}
+                <div>
+                  <span className="font-medium text-gray-900">
+                    {(product.variants?.length ?? 0) > 1 ? "Từ " : ""}
+                    {formatVND(productMinPrice(product))}
+                  </span>
+                  <span className="ml-2 text-gray-500">
+                    Tồn: {productTotalStock(product)} {productUnit(product)}
+                  </span>
+                </div>
+                <span
+                  className={`text-xs font-medium ${
+                    productProfit(product) >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  Lãi: {formatVND(productProfit(product))}
                 </span>
               </div>
               <div className="flex items-center gap-3">
@@ -276,6 +285,7 @@ export default function ProductsAdminList({
               <th className="px-4 py-2">Danh mục</th>
               <th className="px-4 py-2">Biến thể</th>
               <th className="px-4 py-2 text-right">Giá</th>
+              <th className="px-4 py-2 text-right">Lãi</th>
               <th className="px-4 py-2 text-right">Tồn kho</th>
               <th className="px-4 py-2">Trạng thái</th>
               <th className="px-4 py-2"></th>
@@ -305,6 +315,13 @@ export default function ProductsAdminList({
                 <td className="px-4 py-2 text-right">
                   {(product.variants?.length ?? 0) > 1 ? "Từ " : ""}
                   {formatVND(productMinPrice(product))}
+                </td>
+                <td
+                  className={`px-4 py-2 text-right font-medium ${
+                    productProfit(product) >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {formatVND(productProfit(product))}
                 </td>
                 <td className="px-4 py-2 text-right">
                   {productTotalStock(product)} {productUnit(product)}
@@ -339,7 +356,7 @@ export default function ProductsAdminList({
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={10} className="px-4 py-6 text-center text-gray-400">
                   Chưa có sản phẩm nào.
                 </td>
               </tr>

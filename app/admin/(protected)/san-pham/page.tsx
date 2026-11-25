@@ -10,9 +10,9 @@ export const revalidate = 0;
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ danh_muc?: string }>;
+  searchParams: Promise<{ danh_muc?: string; q?: string }>;
 }) {
-  const { danh_muc: categoryId } = await searchParams;
+  const { danh_muc: categoryId, q } = await searchParams;
   const supabase = await createClient();
 
   const [allProducts, { data: categories }] = await Promise.all([
@@ -20,7 +20,16 @@ export default async function AdminProductsPage({
     supabase.from("categories").select("*").order("name"),
   ]);
 
-  const products = categoryId ? allProducts.filter((p) => p.category_id === categoryId) : allProducts;
+  let products = categoryId ? allProducts.filter((p) => p.category_id === categoryId) : allProducts;
+
+  if (q?.trim()) {
+    const needle = q.trim().toLowerCase();
+    products = products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(needle) ||
+        (p.variants ?? []).some((v) => v.sku.toLowerCase().includes(needle))
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,13 +66,19 @@ export default async function AdminProductsPage({
             </option>
           ))}
         </select>
+        <input
+          name="q"
+          defaultValue={q}
+          placeholder="Tìm theo tên hoặc SKU..."
+          className="max-w-xs flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+        />
         <button
           type="submit"
           className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
         >
           Lọc
         </button>
-        {categoryId && (
+        {(categoryId || q) && (
           <Link href="/admin/san-pham" className="text-sm text-gray-500 hover:underline">
             Xóa lọc
           </Link>
