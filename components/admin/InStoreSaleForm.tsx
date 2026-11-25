@@ -19,9 +19,11 @@ interface FlatVariantOption {
   price: number;
   stock: number;
   unit: string;
+  categoryId: string | null;
 }
 
-const MAX_SUGGESTIONS = 8;
+const MAX_SEARCH_SUGGESTIONS = 8;
+const MAX_BROWSE_SUGGESTIONS = 30;
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -49,6 +51,7 @@ function flattenOptions(products: Product[]): FlatVariantOption[] {
         price: variant.price ?? 0,
         stock: variant.total_stock ?? 0,
         unit: variant.unit || "Cái",
+        categoryId: product.category?.id ?? null,
       });
     }
   }
@@ -64,10 +67,20 @@ export default function InStoreSaleForm({
 }) {
   const options = useMemo(() => flattenOptions(products), [products]);
   const optionMap = useMemo(() => new Map(options.map((o) => [o.variantId, o])), [options]);
+  const categories = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of products) {
+      if (p.category) map.set(p.category.id, p.category.name);
+    }
+    return [...map.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [products]);
 
   const [items, setItems] = useState<LineItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [query, setQuery] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [open, setOpen] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
@@ -85,16 +98,20 @@ export default function InStoreSaleForm({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return options
-      .filter(
+    if (!q && !categoryId) return [];
+
+    let list = options;
+    if (categoryId) list = list.filter((o) => o.categoryId === categoryId);
+    if (q) {
+      list = list.filter(
         (o) =>
           o.label.toLowerCase().includes(q) ||
           o.sku.toLowerCase().includes(q) ||
           (o.barcode ? o.barcode.toLowerCase().includes(q) : false)
-      )
-      .slice(0, MAX_SUGGESTIONS);
-  }, [options, query]);
+      );
+    }
+    return list.slice(0, q ? MAX_SEARCH_SUGGESTIONS : MAX_BROWSE_SUGGESTIONS);
+  }, [options, query, categoryId]);
 
   function addItem(variantId: string) {
     const option = optionMap.get(variantId);
@@ -154,24 +171,42 @@ export default function InStoreSaleForm({
       <input type="hidden" name="items_json" value={JSON.stringify(items)} />
       <input type="hidden" name="payment_method" value={paymentMethod} />
 
-      <div ref={containerRef} className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <input
-          ref={searchRef}
-          type="text"
-          value={query}
+      <div ref={containerRef} className="relative flex flex-col gap-2 sm:flex-row">
+        <select
+          value={categoryId}
           onChange={(e) => {
-            setQuery(e.target.value);
+            setCategoryId(e.target.value);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Gõ tên sản phẩm, SKU hoặc quét mã vạch..."
-          autoFocus
-          className="w-full rounded-md border border-gray-300 py-3 pl-9 pr-3 text-base focus:border-brand-600 focus:outline-none"
-        />
+          className="rounded-md border border-gray-300 px-3 py-3 text-base focus:border-brand-600 focus:outline-none sm:w-48 sm:flex-shrink-0"
+        >
+          <option value="">Tất cả danh mục</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
 
-        {open && query.trim() && (
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            ref={searchRef}
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Gõ tên sản phẩm, SKU hoặc quét mã vạch..."
+            autoFocus
+            className="w-full rounded-md border border-gray-300 py-3 pl-9 pr-3 text-base focus:border-brand-600 focus:outline-none"
+          />
+        </div>
+
+        {open && (query.trim() || categoryId) && (
           <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-80 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
             {filtered.length === 0 ? (
               <p className="px-4 py-3 text-sm text-gray-400">Không tìm thấy sản phẩm phù hợp.</p>
